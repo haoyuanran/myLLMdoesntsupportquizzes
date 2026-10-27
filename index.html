@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JSON Quiz</title>
+<style>
+:root{
+  --bg:#f6f5f2;--surface:#ffffff;--surface-2:#efede8;--text:#1d1c1a;--muted:#6b675f;--border:#dedad2;
+  --accent:#3b5bdb;--accent-ink:#ffffff;--accent-soft:#e7ecff;
+  --good:#2b8a3e;--good-bg:#e6f4ea;--bad:#c92a2a;--bad-bg:#fdeaea;--warn-bg:#fff6dc;--warn:#8a6100;
+  --shadow:0 1px 2px rgba(0,0,0,.05),0 8px 24px rgba(0,0,0,.06);--radius:14px;color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#141518;--surface:#1d1f24;--surface-2:#272a31;--text:#ecebe8;--muted:#9c9a92;--border:#353840;
+    --accent:#7b93ff;--accent-ink:#0d0f14;--accent-soft:#232b4a;
+    --good:#63d47f;--good-bg:#16301f;--bad:#ff8787;--bad-bg:#3a1c1c;--warn-bg:#3a2f12;--warn:#ffd36b;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141518;--surface:#1d1f24;--surface-2:#272a31;--text:#ecebe8;--muted:#9c9a92;--border:#353840;
+  --accent:#7b93ff;--accent-ink:#0d0f14;--accent-soft:#232b4a;
+  --good:#63d47f;--good-bg:#16301f;--bad:#ff8787;--bad-bg:#3a1c1c;--warn-bg:#3a2f12;--warn:#ffd36b;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh}
+button,input,textarea,select{font:inherit;color:inherit}
+[hidden]{display:none!important}
+code{font-family:ui-monospace,Consolas,monospace;font-size:.9em;background:var(--surface-2);padding:.1em .35em;border-radius:5px}
+pre{background:var(--surface-2);padding:12px;border-radius:8px;overflow:auto;text-align:left}
+pre code{background:none;padding:0}
+
+.top{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:5}
+.brand{background:none;border:0;font-weight:700;font-size:1.05rem;cursor:pointer;padding:4px 0;display:flex;gap:8px;align-items:center}
+.brand i{width:22px;height:22px;border-radius:6px;background:var(--accent);display:inline-block}
+.top-actions{display:flex;gap:4px}
+.top .btn,.brand{white-space:nowrap}
+main{max-width:760px;margin:0 auto;padding:32px 16px 64px}
+h1{font-size:1.9rem;line-height:1.2;margin:0 0 8px}
+h2{font-size:1.15rem;margin:0}
+.lead{color:var(--muted);margin:0 0 24px}
+
+.btn{border:1px solid var(--border);background:var(--surface);border-radius:10px;padding:9px 16px;cursor:pointer;transition:background .15s,border-color .15s,transform .05s}
+.btn:hover{background:var(--surface-2)}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.ghost:hover{background:var(--surface-2)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn:focus-visible,.opt:focus-visible,.flash:focus-visible,.drop:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.link{background:none;border:0;color:var(--accent);cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:3px}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px}
+.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border:2px dashed var(--border);border-radius:var(--radius);padding:40px 16px;cursor:pointer;background:var(--surface);text-align:center;transition:border-color .15s,background .15s}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop strong{font-size:1.1rem}
+.drop span{color:var(--muted)}
+.or{display:flex;align-items:center;gap:12px;color:var(--muted);margin:20px 0;font-size:.9rem}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--border)}
+textarea{width:100%;min-height:140px;resize:vertical;border:1px solid var(--border);border-radius:10px;padding:12px;background:var(--surface);font-family:ui-monospace,Consolas,monospace;font-size:.85rem;margin-bottom:10px}
+textarea:focus,input[type=text]:focus,input[type=number]:focus{outline:2px solid var(--accent);border-color:transparent}
+.error{background:var(--bad-bg);color:var(--bad);border-radius:10px;padding:12px 14px;margin-top:14px;white-space:pre-wrap}
+.warn{background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:12px 14px;margin:16px 0;font-size:.9rem}
+.warn ul{margin:6px 0 0;padding-left:20px}
+
+.recent{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:8px}
+.recent li{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 6px 6px 14px}
+.recent .r-open{flex:1;text-align:left;background:none;border:0;cursor:pointer;padding:6px 0;min-width:0}
+.recent .r-open b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.recent .r-open small{color:var(--muted)}
+.section-title{margin-top:36px}
+
+.stats{display:flex;gap:12px;margin:20px 0;flex-wrap:wrap}
+.stat{flex:1;min-width:140px;background:var(--surface-2);border-radius:12px;padding:14px 16px}
+.stat b{display:block;font-size:1.6rem;line-height:1.2}
+.stat span{color:var(--muted);font-size:.9rem}
+.opts{display:grid;gap:12px;margin:20px 0 24px}
+.seg{display:inline-flex;background:var(--surface-2);border-radius:10px;padding:3px;flex-wrap:wrap}
+.seg label{padding:6px 14px;border-radius:8px;cursor:pointer;font-size:.95rem}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label:has(input:checked){background:var(--surface);box-shadow:var(--shadow);font-weight:600}
+.check{display:flex;gap:10px;align-items:center;cursor:pointer}
+.check input{width:18px;height:18px;accent-color:var(--accent)}
+
+.progress{height:6px;background:var(--surface-2);border-radius:99px;overflow:hidden}
+.progress div{height:100%;background:var(--accent);border-radius:99px;transition:width .3s}
+.meta{display:flex;justify-content:space-between;color:var(--muted);font-size:.9rem;margin:10px 0 20px;gap:12px}
+.tag{display:inline-block;font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;background:var(--accent-soft);color:var(--accent);padding:2px 8px;border-radius:99px;margin-right:6px}
+.q{font-size:1.35rem;line-height:1.4;margin:0 0 6px;font-weight:600}
+.sub{color:var(--muted);font-size:.9rem;margin:0}
+.hint{color:var(--muted);font-style:italic;margin:8px 0 0}
+.options{display:grid;gap:10px;margin:20px 0}
+.opt{display:flex;gap:12px;align-items:flex-start;text-align:left;width:100%;padding:13px 14px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface);cursor:pointer;transition:border-color .12s,background .12s}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.opt .key{flex:none;width:26px;height:26px;border-radius:7px;display:grid;place-items:center;background:var(--surface-2);font-size:.8rem;font-weight:700;margin-top:-1px}
+.opt.sel{border-color:var(--accent);background:var(--accent-soft)}
+.opt.sel .key{background:var(--accent);color:var(--accent-ink)}
+.opt.right{border-color:var(--good);background:var(--good-bg)}
+.opt.right .key{background:var(--good);color:var(--surface)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-bg)}
+.opt.wrong .key{background:var(--bad);color:var(--surface)}
+.opt:disabled{cursor:default}
+.opt:disabled:not(.right):not(.wrong){opacity:.6}
+.feedback{border-radius:12px;padding:14px 16px;margin-bottom:20px}
+.feedback.good{background:var(--good-bg)}
+.feedback.bad{background:var(--bad-bg)}
+.feedback strong{display:block;margin-bottom:2px}
+.feedback.good strong{color:var(--good)}
+.feedback.bad strong{color:var(--bad)}
+.actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.kbd{color:var(--muted);font-size:.8rem;text-align:center;margin-top:28px}
+.kbd kbd{font-family:inherit;border:1px solid var(--border);border-bottom-width:2px;border-radius:5px;padding:0 5px;background:var(--surface)}
+
+.flash{perspective:1400px;cursor:pointer;margin:20px 0 16px;border-radius:var(--radius)}
+.flash-inner{display:grid;transition:transform .5s cubic-bezier(.3,.7,.3,1);transform-style:preserve-3d}
+.flash.flipped .flash-inner{transform:rotateY(180deg)}
+.face{grid-area:1/1;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);min-height:260px;padding:36px 28px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:1.3rem;line-height:1.45}
+.face.back{transform:rotateY(180deg);background:var(--accent-soft);font-size:1.12rem}
+.face-label{position:absolute;top:14px;left:18px;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.face{position:relative}
+.tap{text-align:center;color:var(--muted);font-size:.9rem;margin:0 0 20px}
+.btn.good{border-color:var(--good);color:var(--good)}
+.btn.good:hover{background:var(--good-bg)}
+.btn.bad{border-color:var(--bad);color:var(--bad)}
+.btn.bad:hover{background:var(--bad-bg)}
+.grade{justify-content:center}
+.grade .btn{flex:1;max-width:220px;padding:12px}
+
+.score{display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin:8px 0 24px}
+.ring{--p:0;width:120px;height:120px;border-radius:50%;background:conic-gradient(var(--accent) calc(var(--p)*1%),var(--surface-2) 0);display:grid;place-items:center;flex:none}
+.ring span{width:94px;height:94px;border-radius:50%;background:var(--surface);display:grid;place-items:center;font-size:1.6rem;font-weight:700}
+.missed{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:10px}
+.missed li{border:1px solid var(--border);border-left:4px solid var(--bad);border-radius:10px;padding:12px 14px;background:var(--surface)}
+.missed .ans{color:var(--good);margin-top:4px}
+.missed .yours{color:var(--bad);font-size:.9rem}
+
+dialog{border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);box-shadow:var(--shadow);max-width:720px;width:calc(100% - 32px);padding:0}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.dlg-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border)}
+.dlg-body{padding:16px 20px 20px;max-height:70vh;overflow:auto}
+.dlg-body p{margin:0 0 12px;color:var(--muted)}
+.fields{display:grid;grid-template-columns:1fr 110px 170px;gap:10px;margin-bottom:12px}
+.fields label{display:grid;gap:4px;font-size:.85rem;color:var(--muted)}
+.fields input,.fields select{border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:var(--surface);color:var(--text)}
+#promptText{white-space:pre-wrap;font-size:.8rem;max-height:340px;margin:0 0 12px}
+@media (max-width:560px){
+  .fields{grid-template-columns:1fr 1fr}
+  .fields label:first-child{grid-column:1/-1}
+  h1{font-size:1.5rem}
+  .q{font-size:1.15rem}
+  .face{font-size:1.1rem;min-height:220px;padding:32px 18px}
+  .card{padding:18px}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <button class="brand" id="homeBtn" title="Home"><i></i>JSON Quiz</button>
+  <div class="top-actions">
+    <button class="btn ghost" id="promptBtn">AI prompt</button>
+    <button class="btn ghost" id="themeBtn" title="Toggle light/dark" aria-label="Toggle light or dark theme">◐</button>
+  </div>
+</header>
+
+<main>
+  <!-- HOME -->
+  <section id="home">
+    <h1>Turn JSON into a quiz</h1>
+    <p class="lead">Load a quiz file, or paste JSON straight from Claude, ChatGPT or Gemini. Need one? Click <button class="link" id="promptLink">AI prompt</button> for a ready-to-copy prompt.</p>
+
+    <label class="drop" id="drop">
+      <input type="file" id="fileInput" accept=".json,application/json,text/plain" hidden>
+      <strong>Drop a .json file here</strong>
+      <span>or click to choose one</span>
+    </label>
+
+    <div class="or">or paste it</div>
+    <textarea id="pasteBox" placeholder='{"title": "My quiz", "questions": [ ... ]}' spellcheck="false"></textarea>
+    <div class="row">
+      <button class="btn primary" id="loadPaste">Load pasted JSON</button>
+      <button class="btn" id="sampleBtn">Try a sample quiz</button>
+    </div>
+    <div class="error" id="error" hidden></div>
+
+    <div id="recentWrap" hidden>
+      <h2 class="section-title">Recent quizzes</h2>
+      <ul class="recent" id="recent"></ul>
+    </div>
+  </section>
+
+  <!-- SETUP -->
+  <section id="setup" hidden>
+    <div class="card">
+      <h1 id="qTitle"></h1>
+      <p class="sub" id="qDesc"></p>
+      <div class="stats">
+        <div class="stat"><b id="nMcq">0</b><span>multiple choice</span></div>
+        <div class="stat"><b id="nCard">0</b><span>flashcards</span></div>
+      </div>
+      <div class="warn" id="warn" hidden></div>
+      <div class="opts">
+        <div class="seg" id="modeSeg">
+          <label><input type="radio" name="mode" value="all" checked>Everything</label>
+          <label><input type="radio" name="mode" value="mcq">Multiple choice only</label>
+          <label><input type="radio" name="mode" value="card">Flashcards only</label>
+        </div>
+        <label class="check"><input type="checkbox" id="shufQ">Shuffle question order</label>
+        <label class="check"><input type="checkbox" id="shufO" checked>Shuffle answer options</label>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="startBtn">Start</button>
+        <button class="btn" id="backBtn">Load a different quiz</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- PLAY -->
+  <section id="play" hidden>
+    <div class="progress"><div id="bar"></div></div>
+    <div class="meta"><span id="pos"></span><span id="tally"></span></div>
+    <div id="stage"></div>
+    <p class="kbd" id="kbd"></p>
+  </section>
+
+  <!-- RESULTS -->
+  <section id="results" hidden>
+    <div class="card">
+      <h1>Done!</h1>
+      <div class="score">
+        <div class="ring" id="ring"><span id="pct"></span></div>
+        <div id="breakdown"></div>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="retryMissed">Retry the ones I missed</button>
+        <button class="btn" id="restartBtn">Start over</button>
+        <button class="btn" id="newBtn">New quiz</button>
+      </div>
+    </div>
+    <div id="missedWrap">
+      <h2 class="section-title">To review</h2>
+      <ul class="missed" id="missed"></ul>
+    </div>
+  </section>
+</main>
+
+<dialog id="promptDialog">
+  <div class="dlg-head"><h2>Prompt for any AI</h2><button class="btn ghost" id="closeDlg" aria-label="Close">✕</button></div>
+  <div class="dlg-body">
+    <p>Fill in a topic, copy the prompt, paste it into Claude, ChatGPT or Gemini, then paste the reply back here (code fences and extra text are fine).</p>
+    <div class="fields">
+      <label>Topic<input type="text" id="pTopic" placeholder="e.g. Photosynthesis, GCSE level"></label>
+      <label>How many<input type="number" id="pCount" value="15" min="1" max="200"></label>
+      <label>Mix<select id="pMix">
+        <option value="mix">MCQ + flashcards</option>
+        <option value="mcq">MCQ only</option>
+        <option value="card">Flashcards only</option>
+      </select></label>
+    </div>
+    <pre id="promptText"></pre>
+    <div class="row"><button class="btn primary" id="copyPrompt">Copy prompt</button><span id="copied" class="sub" hidden>Copied ✓</span></div>
+  </div>
+</dialog>
+
+<script>/*PRELOAD*/</script>
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const screens = ['home', 'setup', 'play', 'results'];
+const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+const SAMPLE = {"title":"The Solar System","description":"A quick mixed quiz: multiple choice and flashcards.","questions":[{"type":"mcq","question":"Which planet is closest to the Sun?","options":["Venus","Mercury","Mars","Earth"],"answer":"Mercury","explanation":"Mercury orbits at about 0.39 AU, the closest of all eight planets."},{"type":"mcq","question":"Which planet has the most confirmed moons?","options":["Jupiter","Saturn","Uranus","Neptune"],"answer":"Saturn","hint":"It's famous for something else too.","explanation":"Saturn passed Jupiter in 2023 and now has well over 140 confirmed moons."},{"type":"mcq","question":"Which of these are **gas giants**? (select all that apply)","options":["Jupiter","Mars","Saturn","Venus"],"answer":["Jupiter","Saturn"],"explanation":"Jupiter and Saturn are gas giants; Uranus and Neptune are usually called ice giants."},{"type":"mcq","question":"Roughly how long does sunlight take to reach Earth?","options":["8 seconds","8 minutes","8 hours","8 days"],"answer":"8 minutes","explanation":"About 8 minutes 20 seconds at an average distance of 150 million km."},{"type":"mcq","question":"What is the largest planet in the Solar System?","options":["Earth","Neptune","Jupiter","Saturn"],"answer":"Jupiter"},{"type":"flashcard","front":"Astronomical Unit (AU)","back":"The average distance from Earth to the Sun, about 150 million km."},{"type":"flashcard","front":"Kuiper Belt","back":"A region of icy bodies beyond Neptune's orbit. Pluto lives here.","hint":"Think: past the outermost planet."},{"type":"flashcard","front":"Why is Venus hotter than Mercury?","back":"Its thick CO₂ atmosphere traps heat (a runaway greenhouse effect), even though it is farther from the Sun."}]};
+
+/* ---------- storage (best effort) ---------- */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+
+/* ---------- text helpers ---------- */
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function fmt(s) {
+  let h = esc(s);
+  h = h.replace(/```\w*\n?([\s\S]*?)```/g, (m, c) => '<pre><code>' + c.replace(/\n/g, '&#10;') + '</code></pre>');
+  h = h.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+  h = h.replace(/\*\*(\S(?:[^*]*?\S)?)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/(^|[\s(])\*(\S(?:[^*\n]*?\S)?)\*(?=[\s).,!?:;]|$)/g, '$1<em>$2</em>');
+  return h.replace(/\n/g, '<br>');
+}
+const str = v => v == null ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v);
+const pick = (o, ...keys) => { for (const k of keys) if (o[k] != null && o[k] !== '') return o[k]; };
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+/* ---------- parsing: forgiving of typical LLM output ---------- */
+function parseLoose(text) {
+  let t = String(text).replace(/^﻿/, '').trim();
+  const fence = t.match(/```(?:json|JSON)?\s*([\s\S]*?)```/);
+  if (fence) t = fence[1].trim();
+  // drop any chatter before/after the JSON itself
+  const start = t.search(/[\[{]/);
+  const end = Math.max(t.lastIndexOf('}'), t.lastIndexOf(']'));
+  if (start > 0 || (end >= 0 && end < t.length - 1)) t = t.slice(Math.max(start, 0), end + 1);
+  try { return JSON.parse(t); } catch (e1) {
+    const fixed = t.replace(/[“”]/g, '"').replace(/,\s*([}\]])/g, '$1');
+    try { return JSON.parse(fixed); } catch { throw new Error('That isn\'t valid JSON.\n' + e1.message); }
+  }
+}
+
+const LIST_KEYS = ['questions', 'items', 'quiz', 'mcq', 'mcqs', 'cards', 'flashcards', 'deck'];
+const CARD_LIST_KEYS = ['cards', 'flashcards', 'deck'];
+const MCQ_TYPES = ['mcq', 'multiplechoice', 'multiple', 'choice', 'mc', 'multi', 'multiselect', 'multipleanswer', 'selectall', 'quiz', 'question'];
+const CARD_TYPES = ['flashcard', 'flashcards', 'card', 'flash', 'fc', 'term'];
+
+function normalize(data) {
+  if (Array.isArray(data)) data = { questions: data };
+  if (!data || typeof data !== 'object') throw new Error('The JSON should be an object with a "questions" list.');
+  if (!LIST_KEYS.some(k => Array.isArray(data[k])) && data.quiz && typeof data.quiz === 'object') data = data.quiz;
+  const lists = LIST_KEYS.filter(k => Array.isArray(data[k]));
+  if (!lists.length) throw new Error('Couldn\'t find a "questions" list in the JSON.');
+  const items = [], warnings = [];
+  let n = 0;
+  for (const k of lists) {
+    for (const q of data[k]) {
+      n++;
+      try { items.push(normItem(q, CARD_LIST_KEYS.includes(k))); }
+      catch (e) { warnings.push(`Item ${n} skipped: ${e.message}`); }
+    }
+  }
+  if (!items.length) throw new Error('No usable questions found.\n' + warnings.slice(0, 5).join('\n'));
+  return {
+    title: str(pick(data, 'title', 'name', 'topic')) || 'Untitled quiz',
+    description: str(pick(data, 'description', 'subtitle') || ''),
+    items, warnings
+  };
+}
+
+function normItem(q, inCardList) {
+  if (!q || typeof q !== 'object') throw new Error('not an object');
+  const type = str(pick(q, 'type', 'kind')).toLowerCase().replace(/[^a-z]/g, '');
+  let options = pick(q, 'options', 'choices');
+  if (!options && Array.isArray(q.answers) && q.answers.some(a => a && typeof a === 'object')) options = q.answers;
+  const hint = str(pick(q, 'hint') || '');
+  const isCard = CARD_TYPES.includes(type) || (!MCQ_TYPES.includes(type) && !options &&
+    (inCardList || pick(q, 'front', 'back', 'term', 'definition') != null || pick(q, 'answer') != null));
+  if (isCard) {
+    const front = pick(q, 'front', 'term', 'question', 'prompt', 'q', 'word');
+    let back = pick(q, 'back', 'definition', 'answer', 'a', 'meaning', 'explanation');
+    if (Array.isArray(back)) back = back.join(', ');
+    if (front == null) throw new Error('flashcard is missing "front"');
+    if (back == null) throw new Error('flashcard is missing "back"');
+    return { kind: 'card', front: str(front), back: str(back), hint };
+  }
+  return normMcq(q, options, type, hint);
+}
+
+function normMcq(q, raw, type, hint) {
+  const question = pick(q, 'question', 'prompt', 'q', 'text', 'stem');
+  if (question == null) throw new Error('missing "question"');
+  if (!raw) throw new Error('missing "options"');
+  if (!Array.isArray(raw) && typeof raw === 'object') raw = Object.entries(raw).map(([k, v]) => ({ __key: k, text: v }));
+  if (!Array.isArray(raw)) throw new Error('"options" should be a list');
+  const correct = new Set();
+  const opts = raw.map((o, i) => {
+    if (o && typeof o === 'object') {
+      if (o.correct === true || o.isCorrect === true || o.is_correct === true) correct.add(i);
+      return str(pick(o, 'text', 'option', 'label', 'value', 'answer') ?? '');
+    }
+    return str(o);
+  });
+  if (opts.length < 2) throw new Error('needs at least 2 options');
+  // strip "A) " / "B. " labels if every option has them in order
+  const pre = /^\s*\(?([A-Za-z])[\).:]\s+/;
+  const prefixed = opts.every((o, i) => { const m = o.match(pre); return m && m[1].toUpperCase() === LETTERS[i]; });
+  const clean = prefixed ? opts.map(o => o.replace(pre, '')) : opts;
+  const keys = raw.map(o => o && o.__key != null ? String(o.__key).trim().toUpperCase() : null);
+  const lc = s => s.trim().toLowerCase();
+
+  const resolve = a => {
+    if (typeof a === 'number') return Number.isInteger(a) && a >= 0 && a < clean.length ? a : -1;
+    const s = str(a).trim();
+    let k = clean.findIndex(o => lc(o) === s.toLowerCase());
+    if (k < 0) k = opts.findIndex(o => lc(o) === s.toLowerCase());
+    if (k < 0) k = keys.indexOf(s.toUpperCase());
+    if (k >= 0) return k;
+    const m = s.match(/^\(?([A-Za-z])[\).:]?$/);
+    if (m) { k = LETTERS.indexOf(m[1].toUpperCase()); if (k < clean.length) return k; }
+    if (pre.test(s)) { const rest = s.replace(pre, '').toLowerCase(); k = clean.findIndex(o => lc(o) === rest.trim()); }
+    return k;
+  };
+  let ans = pick(q, 'answer', 'correct', 'correct_answer', 'correctAnswer', 'correct_answers', 'correctAnswers', 'solution');
+  if (ans == null && raw !== q.answers) ans = q.answers;
+  if (ans != null && typeof ans !== 'boolean') {
+    for (const a of Array.isArray(ans) ? ans : [ans]) {
+      const k = resolve(a);
+      if (k < 0) throw new Error(`answer "${str(a)}" doesn't match any option`);
+      correct.add(k);
+    }
+  }
+  if (!correct.size) throw new Error('no correct "answer" given');
+  const multi = correct.size > 1 || q.multiple === true || q.multi === true || /multi|select/.test(type);
+  const noShuffle = q.shuffle === false || clean.some(o => /\b(all|none|both|neither) of (the )?(above|these|them)\b/i.test(o));
+  return {
+    kind: 'mcq', question: str(question), options: clean, correct: [...correct].sort((a, b) => a - b), multi, noShuffle, hint,
+    explanation: str(pick(q, 'explanation', 'explain', 'rationale', 'reason', 'why') || '')
+  };
+}
+
+/* ---------- state ---------- */
+let quiz = null, quizText = '';
+let S = null; // play session
+
+function show(name) {
+  for (const s of screens) $(s).hidden = s !== name;
+  window.scrollTo(0, 0);
+}
+
+function showError(msg) { const e = $('error'); e.textContent = msg; e.hidden = !msg; }
+
+function loadText(text, opts = {}) {
+  try {
+    const q = normalize(parseLoose(text));
+    quiz = q; quizText = text;
+    showError('');
+    if (!opts.noSave) saveRecent(q.title, text, q.items.length);
+    openSetup();
+  } catch (e) {
+    showError(e.message);
+    show('home');
+  }
+}
+
+/* ---------- recent ---------- */
+function saveRecent(title, text, count) {
+  let list = store.get('jsonquiz.recent', []).filter(r => !(r.title === title && r.text.length === text.length));
+  list.unshift({ title, text, count, at: Date.now() });
+  store.set('jsonquiz.recent', list.slice(0, 10));
+  renderRecent();
+}
+function renderRecent() {
+  const list = store.get('jsonquiz.recent', []);
+  $('recentWrap').hidden = !list.length;
+  $('recent').innerHTML = list.map((r, i) => `<li>
+    <button class="r-open" data-i="${i}"><b>${esc(r.title)}</b><small>${r.count} items · ${new Date(r.at).toLocaleDateString()}</small></button>
+    <button class="btn ghost" data-del="${i}" aria-label="Remove ${esc(r.title)}" title="Remove">✕</button></li>`).join('');
+}
+$('recent').addEventListener('click', e => {
+  const list = store.get('jsonquiz.recent', []);
+  const open = e.target.closest('[data-i]'), del = e.target.closest('[data-del]');
+  if (open) loadText(list[+open.dataset.i].text, { noSave: false });
+  if (del) { list.splice(+del.dataset.del, 1); store.set('jsonquiz.recent', list); renderRecent(); }
+});
+
+/* ---------- setup ---------- */
+function openSetup() {
+  const nM = quiz.items.filter(i => i.kind === 'mcq').length, nC = quiz.items.length - nM;
+  $('qTitle').textContent = quiz.title;
+  $('qDesc').innerHTML = fmt(quiz.description);
+  $('qDesc').hidden = !quiz.description;
+  $('nMcq').textContent = nM; $('nCard').textContent = nC;
+  $('modeSeg').hidden = !(nM && nC);
+  document.querySelector('input[name=mode][value=all]').checked = true;
+  const w = $('warn');
+  w.hidden = !quiz.warnings.length;
+  if (quiz.warnings.length) w.innerHTML = `<b>${quiz.warnings.length} item(s) couldn't be read and were skipped:</b><ul>${quiz.warnings.slice(0, 8).map(x => `<li>${esc(x)}</li>`).join('')}</ul>`;
+  show('setup');
+  $('startBtn').focus();
+}
+
+function start(items) {
+  const mode = document.querySelector('input[name=mode]:checked').value;
+  let list = items || quiz.items.filter(i => mode === 'all' || i.kind === mode);
+  if (!list.length) list = quiz.items;
+  if ($('shufQ').checked) list = shuffle(list);
+  const shufO = $('shufO').checked;
+  S = {
+    i: 0,
+    items: list.map(it => ({
+      it,
+      order: it.kind === 'mcq' ? (shufO && !it.noShuffle ? shuffle(it.options.map((_, k) => k)) : it.options.map((_, k) => k)) : null,
+      done: false, ok: false, chosen: [], sel: new Set(), flipped: false
+    }))
+  };
+  show('play');
+  render();
+}
+
+/* ---------- play ---------- */
+function cur() { return S.items[S.i]; }
+
+function render() {
+  const c = cur(), n = S.items.length;
+  $('bar').style.width = (S.i / n * 100) + '%';
+  $('pos').innerHTML = `<span class="tag">${c.it.kind === 'mcq' ? (c.it.multi ? 'Select all' : 'Multiple choice') : 'Flashcard'}</span>${S.i + 1} of ${n}`;
+  const done = S.items.filter(x => x.done), ok = done.filter(x => x.ok).length;
+  $('tally').textContent = done.length ? `${ok} / ${done.length} correct` : '';
+  c.it.kind === 'mcq' ? renderMcq(c) : renderCard(c);
+}
+
+function hintHtml(h) {
+  return h ? `<p class="hint"><button class="link" data-hint>Show hint</button><span hidden>💡 ${fmt(h)}</span></p>` : '';
+}
+
+function renderMcq(c) {
+  const it = c.it;
+  $('stage').innerHTML = `
+    <h2 class="q">${fmt(it.question)}</h2>
+    ${it.multi ? `<p class="sub">Choose ${it.correct.length > 1 ? 'all correct answers' : 'every answer that applies'}, then press Check.</p>` : ''}
+    ${hintHtml(it.hint)}
+    <div class="options">${c.order.map((k, pos) => `<button class="opt" data-k="${k}"><span class="key">${LETTERS[pos]}</span><span>${fmt(it.options[k])}</span></button>`).join('')}</div>
+    <div id="fb"></div>
+    <div class="actions">
+      ${it.multi ? '<button class="btn primary" id="checkBtn" disabled>Check</button>' : ''}
+      <button class="btn primary" id="nextBtn" hidden>${S.i + 1 < S.items.length ? 'Next →' : 'See results'}</button>
+    </div>`;
+  $('kbd').innerHTML = `Keys: <kbd>A</kbd>–<kbd>${LETTERS[it.options.length - 1]}</kbd> or <kbd>1</kbd>–<kbd>${Math.min(9, it.options.length)}</kbd> to pick${it.multi ? ', <kbd>Enter</kbd> to check' : ''}, <kbd>Enter</kbd> / <kbd>→</kbd> for next`;
+  if (c.done) paintAnswer(c);
+}
+
+function pickOption(k) {
+  const c = cur();
+  if (c.done) return;
+  if (c.it.multi) {
+    c.sel.has(k) ? c.sel.delete(k) : c.sel.add(k);
+    document.querySelectorAll('.opt').forEach(b => b.classList.toggle('sel', c.sel.has(+b.dataset.k)));
+    $('checkBtn').disabled = !c.sel.size;
+  } else {
+    submit([k]);
+  }
+}
+
+function submit(chosen) {
+  const c = cur();
+  c.chosen = chosen.slice().sort((a, b) => a - b);
+  c.ok = c.chosen.length === c.it.correct.length && c.chosen.every((k, i) => k === c.it.correct[i]);
+  c.done = true;
+  paintAnswer(c);
+  render.tally();
+}
+render.tally = () => {
+  const done = S.items.filter(x => x.done), ok = done.filter(x => x.ok).length;
+  $('tally').textContent = `${ok} / ${done.length} correct`;
+};
+
+function paintAnswer(c) {
+  const it = c.it;
+  document.querySelectorAll('.opt').forEach(b => {
+    const k = +b.dataset.k;
+    b.disabled = true;
+    b.classList.remove('sel');
+    if (it.correct.includes(k)) b.classList.add('right');
+    else if (c.chosen.includes(k)) b.classList.add('wrong');
+  });
+  const answerText = it.correct.map(k => fmt(it.options[k])).join(', ');
+  $('fb').innerHTML = `<div class="feedback ${c.ok ? 'good' : 'bad'}">
+    <strong>${c.ok ? 'Correct!' : 'Not quite.'}</strong>
+    ${c.ok ? '' : `<div>Answer: ${answerText}</div>`}
+    ${it.explanation ? `<div style="margin-top:6px">${fmt(it.explanation)}</div>` : ''}</div>`;
+  if ($('checkBtn')) $('checkBtn').hidden = true;
+  $('nextBtn').hidden = false;
+  $('nextBtn').focus({ preventScroll: true });
+}
+
+function renderCard(c) {
+  const it = c.it;
+  $('stage').innerHTML = `
+    ${hintHtml(it.hint)}
+    <div class="flash${c.flipped ? ' flipped' : ''}" id="flash" tabindex="0" role="button" aria-label="Flashcard, press to flip">
+      <div class="flash-inner">
+        <div class="face front"><span class="face-label">Front</span><div>${fmt(it.front)}</div></div>
+        <div class="face back"><span class="face-label">Back</span><div>${fmt(it.back)}</div></div>
+      </div>
+    </div>
+    <p class="tap" id="tapHint">${c.flipped ? 'How did you do?' : 'Click the card to flip it'}</p>
+    <div class="actions grade" id="grade" ${c.flipped ? '' : 'hidden'}>
+      <button class="btn bad" id="missBtn">✗ Still learning</button>
+      <button class="btn good" id="knewBtn">✓ Knew it</button>
+    </div>`;
+  $('kbd').innerHTML = '<kbd>Space</kbd> to flip, then <kbd>1</kbd> / <kbd>←</kbd> still learning, <kbd>2</kbd> / <kbd>→</kbd> knew it';
+  $('flash').focus({ preventScroll: true });
+}
+
+function flip() {
+  const c = cur();
+  c.flipped = !c.flipped;
+  $('flash').classList.toggle('flipped', c.flipped);
+  if (c.flipped) { $('grade').hidden = false; $('tapHint').textContent = 'How did you do?'; }
+}
+
+function grade(ok) {
+  const c = cur();
+  c.done = true; c.ok = ok;
+  next();
+}
+
+function next() {
+  if (S.i + 1 < S.items.length) { S.i++; render(); window.scrollTo(0, 0); }
+  else results();
+}
+
+$('stage').addEventListener('click', e => {
+  const t = e.target;
+  if (t.closest('[data-hint]')) { const b = t.closest('[data-hint]'); b.hidden = true; b.nextElementSibling.hidden = false; return; }
+  const opt = t.closest('.opt'); if (opt) return pickOption(+opt.dataset.k);
+  if (t.closest('#checkBtn')) return submit([...cur().sel]);
+  if (t.closest('#nextBtn')) return next();
+  if (t.closest('#missBtn')) return grade(false);
+  if (t.closest('#knewBtn')) return grade(true);
+  if (t.closest('#flash')) return flip();
+});
+
+document.addEventListener('keydown', e => {
+  if ($('play').hidden || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+  const onButton = e.target.tagName === 'BUTTON';
+  const c = cur(), key = e.key;
+  if (c.it.kind === 'mcq') {
+    if (!c.done) {
+      let pos = -1;
+      if (/^[1-9]$/.test(key)) pos = +key - 1;
+      else if (/^[a-z]$/i.test(key)) pos = LETTERS.indexOf(key.toUpperCase());
+      if (pos >= 0 && pos < c.order.length) { e.preventDefault(); pickOption(c.order[pos]); }
+      else if (key === 'Enter' && c.it.multi && c.sel.size && !onButton) { e.preventDefault(); submit([...c.sel]); }
+    } else if ((key === 'Enter' && !onButton) || key === 'ArrowRight') { e.preventDefault(); next(); }
+  } else {
+    if ((key === ' ' || key === 'Enter') && !onButton) { e.preventDefault(); flip(); }
+    else if (c.flipped && (key === '1' || key === 'ArrowLeft')) { e.preventDefault(); grade(false); }
+    else if (c.flipped && (key === '2' || key === 'ArrowRight')) { e.preventDefault(); grade(true); }
+  }
+});
+
+/* ---------- results ---------- */
+function results() {
+  const all = S.items, ok = all.filter(x => x.ok).length;
+  const pct = Math.round(ok / all.length * 100);
+  $('ring').style.setProperty('--p', pct);
+  $('pct').textContent = pct + '%';
+  const m = all.filter(x => x.it.kind === 'mcq'), f = all.filter(x => x.it.kind === 'card');
+  $('breakdown').innerHTML = `<div style="font-size:1.2rem;font-weight:600">${ok} of ${all.length} right</div>
+    ${m.length ? `<div class="sub">Multiple choice: ${m.filter(x => x.ok).length} / ${m.length}</div>` : ''}
+    ${f.length ? `<div class="sub">Flashcards known: ${f.filter(x => x.ok).length} / ${f.length}</div>` : ''}
+    <div class="sub" style="margin-top:6px">${pct === 100 ? 'Perfect score 🎉' : pct >= 80 ? 'Great work!' : pct >= 50 ? 'Getting there.' : 'Keep practising.'}</div>`;
+  const missed = all.filter(x => !x.ok);
+  $('missedWrap').hidden = $('retryMissed').hidden = !missed.length;
+  $('missed').innerHTML = missed.map(x => {
+    const it = x.it;
+    if (it.kind === 'card') return `<li><div><span class="tag">Flashcard</span>${fmt(it.front)}</div><div class="ans">${fmt(it.back)}</div></li>`;
+    return `<li><div><span class="tag">MCQ</span>${fmt(it.question)}</div>
+      ${x.chosen.length ? `<div class="yours">You said: ${x.chosen.map(k => fmt(it.options[k])).join(', ')}</div>` : ''}
+      <div class="ans">Answer: ${it.correct.map(k => fmt(it.options[k])).join(', ')}</div>
+      ${it.explanation ? `<div class="sub" style="margin-top:4px">${fmt(it.explanation)}</div>` : ''}</li>`;
+  }).join('');
+  S.missed = missed.map(x => x.it);
+  S.all = all.map(x => x.it);
+  show('results');
+}
+$('retryMissed').onclick = () => start(S.missed);
+$('restartBtn').onclick = () => start(S.all);
+$('newBtn').onclick = () => show('home');
+
+/* ---------- home wiring ---------- */
+$('fileInput').addEventListener('change', e => { const f = e.target.files[0]; if (f) readFile(f); e.target.value = ''; });
+function readFile(f) { const r = new FileReader(); r.onload = () => loadText(r.result); r.onerror = () => showError('Couldn\'t read that file.'); r.readAsText(f); }
+const drop = $('drop');
+['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) readFile(f); });
+// allow dropping a file anywhere on the page
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', e => { e.preventDefault(); const f = e.dataTransfer && e.dataTransfer.files[0]; if (f) readFile(f); });
+$('loadPaste').onclick = () => { const t = $('pasteBox').value.trim(); t ? loadText(t) : showError('Paste some JSON first.'); };
+$('sampleBtn').onclick = () => loadText(JSON.stringify(SAMPLE, null, 2), { noSave: true });
+$('startBtn').onclick = () => start();
+$('backBtn').onclick = () => show('home');
+$('homeBtn').onclick = () => show('home');
+
+/* ---------- theme ---------- */
+const savedTheme = store.get('jsonquiz.theme', null);
+if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+$('themeBtn').onclick = () => {
+  const dark = document.documentElement.dataset.theme
+    ? document.documentElement.dataset.theme === 'dark'
+    : matchMedia('(prefers-color-scheme: dark)').matches;
+  const t = dark ? 'light' : 'dark';
+  document.documentElement.dataset.theme = t;
+  store.set('jsonquiz.theme', t);
+};
+
+/* ---------- AI prompt ---------- */
+function buildPrompt() {
+  const topic = $('pTopic').value.trim() || '[YOUR TOPIC HERE]';
+  const count = Math.max(1, +$('pCount').value || 15);
+  const mix = $('pMix').value;
+  const mixLine = mix === 'mcq' ? 'Use only "mcq" items.' : mix === 'card' ? 'Use only "flashcard" items.' : 'Use a mix of "mcq" and "flashcard" items (roughly two thirds mcq).';
+  return `Create a quiz about: ${topic}
+Make ${count} items. ${mixLine}
+
+Reply with ONLY valid JSON in exactly this format (no comments, no extra text):
+
+{
+  "title": "Short quiz title",
+  "description": "One sentence about the quiz (optional)",
+  "questions": [
+    {
+      "type": "mcq",
+      "question": "The question text?",
+      "options": ["Option one", "Option two", "Option three", "Option four"],
+      "answer": "Option two",
+      "explanation": "Why this is correct (optional)",
+      "hint": "A small nudge (optional)"
+    },
+    {
+      "type": "mcq",
+      "question": "Which of these apply? (select all that apply)",
+      "options": ["Option one", "Option two", "Option three", "Option four"],
+      "answer": ["Option one", "Option three"],
+      "explanation": "Optional"
+    },
+    {
+      "type": "flashcard",
+      "front": "Term or question",
+      "back": "Definition or answer",
+      "hint": "Optional"
+    }
+  ]
+}
+
+Rules:
+- "type" is either "mcq" or "flashcard".
+- For mcq, "answer" must be copied EXACTLY from one of the "options". Use a list of strings when more than one option is correct.
+- Give each mcq 3 to 5 options with one clearly correct answer (unless it is a select-all question). Vary which position the correct option is in.
+- Do not put letters like "A)" in front of options.
+- "explanation" and "hint" are optional. Use plain text; **bold** and \`code\` are allowed.`;
+}
+const updatePrompt = () => { $('promptText').textContent = buildPrompt(); $('copied').hidden = true; };
+['pTopic', 'pCount', 'pMix'].forEach(id => $(id).addEventListener('input', updatePrompt));
+const openPrompt = () => { updatePrompt(); $('promptDialog').showModal(); $('pTopic').focus(); };
+$('promptBtn').onclick = openPrompt;
+$('promptLink').onclick = openPrompt;
+$('closeDlg').onclick = () => $('promptDialog').close();
+$('promptDialog').addEventListener('click', e => { if (e.target === $('promptDialog')) $('promptDialog').close(); });
+$('copyPrompt').onclick = async () => {
+  const text = buildPrompt();
+  try { await navigator.clipboard.writeText(text); }
+  catch {
+    const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch {} ta.remove();
+  }
+  $('copied').hidden = false;
+};
+
+/* ---------- boot ---------- */
+renderRecent();
+if (typeof window.PRELOAD_QUIZ === 'string') {
+  loadText(window.PRELOAD_QUIZ);
+} else {
+  const src = new URLSearchParams(location.search).get('quiz');
+  if (src) fetch(src).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+    .then(t => loadText(t)).catch(e => showError('Couldn\'t load quiz from URL: ' + e.message));
+}
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+# Build intermediates / OS clutter
+*.pdb
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Local editor / tool settings
+.vscode/
+.idea/
+.claude/settings.local.json

@@ -1,0 +1,57 @@
+{
+  "title": "The Solar System",
+  "description": "A quick mixed quiz: multiple choice and flashcards.",
+  "questions": [
+    {
+      "type": "mcq",
+      "question": "Which planet is closest to the Sun?",
+      "options": ["Venus", "Mercury", "Mars", "Earth"],
+      "answer": "Mercury",
+      "explanation": "Mercury orbits at about 0.39 AU, the closest of all eight planets."
+    },
+    {
+      "type": "mcq",
+      "question": "Which planet has the most confirmed moons?",
+      "options": ["Jupiter", "Saturn", "Uranus", "Neptune"],
+      "answer": "Saturn",
+      "hint": "It's famous for something else too.",
+      "explanation": "Saturn passed Jupiter in 2023 and now has well over 140 confirmed moons."
+    },
+    {
+      "type": "mcq",
+      "question": "Which of these are **gas giants**? (select all that apply)",
+      "options": ["Jupiter", "Mars", "Saturn", "Venus"],
+      "answer": ["Jupiter", "Saturn"],
+      "explanation": "Jupiter and Saturn are gas giants; Uranus and Neptune are usually called ice giants."
+    },
+    {
+      "type": "mcq",
+      "question": "Roughly how long does sunlight take to reach Earth?",
+      "options": ["8 seconds", "8 minutes", "8 hours", "8 days"],
+      "answer": "8 minutes",
+      "explanation": "About 8 minutes 20 seconds at an average distance of 150 million km."
+    },
+    {
+      "type": "mcq",
+      "question": "What is the largest planet in the Solar System?",
+      "options": ["Earth", "Neptune", "Jupiter", "Saturn"],
+      "answer": "Jupiter"
+    },
+    {
+      "type": "flashcard",
+      "front": "Astronomical Unit (AU)",
+      "back": "The average distance from Earth to the Sun, about 150 million km."
+    },
+    {
+      "type": "flashcard",
+      "front": "Kuiper Belt",
+      "back": "A region of icy bodies beyond Neptune's orbit. Pluto lives here.",
+      "hint": "Think: past the outermost planet."
+    },
+    {
+      "type": "flashcard",
+      "front": "Why is Venus hotter than Mercury?",
+      "back": "Its thick CO₂ atmosphere traps heat (a runaway greenhouse effect), even though it is farther from the Sun."
+    }
+  ]
+}
