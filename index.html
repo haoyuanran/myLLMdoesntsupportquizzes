@@ -146,7 +146,9 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .dlg-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border)}
 .dlg-body{padding:16px 20px 20px;max-height:70vh;overflow:auto}
 .dlg-body p{margin:0 0 12px;color:var(--muted)}
-.fields{display:grid;grid-template-columns:1fr 110px 170px;gap:10px;margin-bottom:12px}
+.fields{display:grid;grid-template-columns:1fr 110px 200px;gap:10px;margin-bottom:12px}
+.fields input[type=range]{padding:0;border:0;accent-color:var(--accent);height:24px;margin-top:6px}
+.split-out{font-size:.85rem;color:var(--text);white-space:nowrap}
 .fields label{display:grid;gap:4px;font-size:.85rem;color:var(--muted)}
 .fields input,.fields select{border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:var(--surface);color:var(--text)}
 #promptText{white-space:pre-wrap;font-size:.8rem;max-height:340px;margin:0 0 12px}
@@ -193,11 +195,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       <div class="fields">
         <label>Topic<input type="text" id="pTopic" placeholder="e.g. Photosynthesis, GCSE level"></label>
         <label>How many<input type="number" id="pCount" value="15" min="1" max="200"></label>
-        <label>Mix<select id="pMix">
-          <option value="mix">MCQ + flashcards</option>
-          <option value="mcq">MCQ only</option>
-          <option value="card">Flashcards only</option>
-        </select></label>
+        <label>Mix<input type="range" id="pSplit" min="0" max="100" step="10" value="70" aria-describedby="splitOut"><output id="splitOut" class="split-out"></output></label>
       </div>
       <div class="send">
         <label class="llm">Chatbot<select id="llmPick"></select></label>
@@ -725,50 +723,35 @@ $('themeBtn').onclick = () => {
 function buildPrompt() {
   const topic = $('pTopic').value.trim() || '[YOUR TOPIC HERE]';
   const count = Math.max(1, +$('pCount').value || 15);
-  const mix = $('pMix').value;
-  const mixLine = mix === 'mcq' ? 'Use only "mcq" items.' : mix === 'card' ? 'Use only "flashcard" items.' : 'Use a mix of "mcq" and "flashcard" items (roughly two thirds mcq).';
+  const { mcq, cards } = split(count);
+  const mixLine = [mcq && `${mcq} "mcq"`, cards && `${cards} "flashcard"`].filter(Boolean).join(' and ') + ' items';
   return `Create a quiz about: ${topic}
-Make ${count} items. ${mixLine}
+Make ${mixLine}.
 
-Reply with ONLY valid JSON in exactly this format (no comments, no extra text):
-
+Reply with only JSON in this format:
 {
-  "title": "Short quiz title",
-  "description": "One sentence about the quiz (optional)",
+  "title": "Quiz title",
   "questions": [
-    {
-      "type": "mcq",
-      "question": "The question text?",
-      "options": ["Option one", "Option two", "Option three", "Option four"],
-      "answer": "Option two",
-      "explanation": "Why this is correct (optional)",
-      "hint": "A small nudge (optional)"
-    },
-    {
-      "type": "mcq",
-      "question": "Which of these apply? (select all that apply)",
-      "options": ["Option one", "Option two", "Option three", "Option four"],
-      "answer": ["Option one", "Option three"],
-      "explanation": "Optional"
-    },
-    {
-      "type": "flashcard",
-      "front": "Term or question",
-      "back": "Definition or answer",
-      "hint": "Optional"
-    }
+    {"type": "mcq", "question": "...", "options": ["...", "...", "...", "..."], "answer": "...", "explanation": "optional"},
+    {"type": "flashcard", "front": "...", "back": "..."}
   ]
 }
-
-Rules:
-- "type" is either "mcq" or "flashcard".
-- For mcq, "answer" must be copied EXACTLY from one of the "options". Use a list of strings when more than one option is correct.
-- Give each mcq 3 to 5 options with one clearly correct answer (unless it is a select-all question). Vary which position the correct option is in.
-- Do not put letters like "A)" in front of options.
-- "explanation" and "hint" are optional. Use plain text; **bold** and \`code\` are allowed.`;
+"answer" must exactly match one of the options (use a list if several are correct).`;
 }
 const updatePrompt = () => { $('promptText').textContent = buildPrompt(); $('copied').hidden = true; };
-['pTopic', 'pCount', 'pMix'].forEach(id => $(id).addEventListener('input', updatePrompt));
+// slider value = % of items that are multiple choice; the rest are flashcards
+function split(count) {
+  const mcq = Math.round(count * $('pSplit').value / 100);
+  return { mcq, cards: count - mcq };
+}
+function updateSplit() {
+  const { mcq, cards } = split(Math.max(1, +$('pCount').value || 15));
+  $('splitOut').textContent = `${mcq} MCQ · ${cards} flashcard${cards === 1 ? '' : 's'}`;
+}
+['pTopic', 'pCount', 'pSplit'].forEach(id => $(id).addEventListener('input', () => { updateSplit(); updatePrompt(); }));
+$('pSplit').value = store.get('jsonquiz.split', 70);
+$('pSplit').addEventListener('change', () => store.set('jsonquiz.split', +$('pSplit').value));
+updateSplit();
 $('previewPrompt').onclick = () => { updatePrompt(); $('dlgCopied').hidden = true; $('promptDialog').showModal(); };
 $('dlgCopy').onclick = async () => { await copyText(buildPrompt()); $('dlgCopied').hidden = false; };
 $('closeDlg').onclick = () => $('promptDialog').close();

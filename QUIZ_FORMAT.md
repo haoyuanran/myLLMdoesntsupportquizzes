@@ -67,47 +67,20 @@ won't stop the rest of the quiz from loading.
 
 ## Prompt to give an AI
 
-The **Make a quiz with AI** card on the app's home screen builds this for you with your topic filled in. Here it is
-for copying by hand:
+The **Make a quiz with AI** card on the app's home screen builds this for you, with your topic
+and your MCQ/flashcard split (set with the slider) filled in. Here it is for copying by hand:
 
 ```text
 Create a quiz about: [YOUR TOPIC HERE]
-Make 15 items. Use a mix of "mcq" and "flashcard" items (roughly two thirds mcq).
+Make 11 "mcq" and 4 "flashcard" items.
 
-Reply with ONLY valid JSON in exactly this format (no comments, no extra text):
-
+Reply with only JSON in this format:
 {
-  "title": "Short quiz title",
-  "description": "One sentence about the quiz (optional)",
+  "title": "Quiz title",
   "questions": [
-    {
-      "type": "mcq",
-      "question": "The question text?",
-      "options": ["Option one", "Option two", "Option three", "Option four"],
-      "answer": "Option two",
-      "explanation": "Why this is correct (optional)",
-      "hint": "A small nudge (optional)"
-    },
-    {
-      "type": "mcq",
-      "question": "Which of these apply? (select all that apply)",
-      "options": ["Option one", "Option two", "Option three", "Option four"],
-      "answer": ["Option one", "Option three"],
-      "explanation": "Optional"
-    },
-    {
-      "type": "flashcard",
-      "front": "Term or question",
-      "back": "Definition or answer",
-      "hint": "Optional"
-    }
+    {"type": "mcq", "question": "...", "options": ["...", "...", "...", "..."], "answer": "...", "explanation": "optional"},
+    {"type": "flashcard", "front": "...", "back": "..."}
   ]
 }
-
-Rules:
-- "type" is either "mcq" or "flashcard".
-- For mcq, "answer" must be copied EXACTLY from one of the "options". Use a list of strings when more than one option is correct.
-- Give each mcq 3 to 5 options with one clearly correct answer (unless it is a select-all question). Vary which position the correct option is in.
-- Do not put letters like "A)" in front of options.
-- "explanation" and "hint" are optional. Use plain text; **bold** and `code` are allowed.
+"answer" must exactly match one of the options (use a list if several are correct).
 ```
