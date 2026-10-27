@@ -1,8 +1,10 @@
 # myLLMdoesntsupportquizzes
 
-its nice that Gemini got its own quiz function, what if you don't use Gemini? I mean heck, even Gemini itself skip the quiz feature sometimes... What if... Having AI make a quiz is as easy as copy-pasting a prompt, life would be so easy
+##⚠I VIBE CODED THIS BECAUSE I NEEDED IT AND DIDN'T KNOW WEB DEVELOPMENT⚠
 
-**JSON Quiz** turns a JSON file into an interactive quiz with multiple-choice questions and flip-card flashcards.
+its nice that Gemini got its own quiz function, what if you don't use Gemini? I mean heck, even Gemini itself skip the quiz feature sometimes... What if... Having AI make a quiz is as easy as copy-pasting a prompt, life would be so easy!
+
+**myLLMdoesntsupportquizzes** turns a JSON file into an interactive quiz with multiple-choice questions and flip-card flashcards.
 The format is simple enough for Claude, ChatGPT or Gemini to write. See [QUIZ_FORMAT.md](QUIZ_FORMAT.md).
 
 ## Run it
