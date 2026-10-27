@@ -1,6 +1,6 @@
 # myLLMdoesntsupportquizzes
 
-##⚠I VIBE CODED THIS BECAUSE I NEEDED IT AND DIDN'T KNOW WEB DEVELOPMENT⚠
+## ⚠I VIBE CODED THIS BECAUSE I NEEDED IT AND DIDN'T KNOW WEB DEVELOPMENT⚠
 
 its nice that Gemini got its own quiz function, what if you don't use Gemini? I mean heck, even Gemini itself skip the quiz feature sometimes... What if... Having AI make a quiz is as easy as copy-pasting a prompt, life would be so easy!
 
