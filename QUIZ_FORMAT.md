@@ -67,7 +67,7 @@ won't stop the rest of the quiz from loading.
 
 ## Prompt to give an AI
 
-The **AI prompt** button in the app builds this for you with your topic filled in. Here it is
+The **Make a quiz with AI** card on the app's home screen builds this for you with your topic filled in. Here it is
 for copying by hand:
 
 ```text

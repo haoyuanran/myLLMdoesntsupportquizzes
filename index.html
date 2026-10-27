@@ -150,9 +150,18 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .fields label{display:grid;gap:4px;font-size:.85rem;color:var(--muted)}
 .fields input,.fields select{border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:var(--surface);color:var(--text)}
 #promptText{white-space:pre-wrap;font-size:.8rem;max-height:340px;margin:0 0 12px}
-.send select{border:1px solid var(--border);border-radius:10px;padding:9px 10px;background:var(--surface);color:var(--text);min-width:150px}
-.send .check{font-size:.85rem;margin-left:auto}
-#copied{margin:10px 0 0}
+.ai-card{border-color:var(--accent);margin-bottom:8px;scroll-margin-top:76px}
+.ai-card h2{margin-bottom:4px}
+.ai-card > .sub{margin-bottom:16px}
+.step{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:.8rem;font-weight:700;margin-right:10px;vertical-align:2px}
+.send{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end}
+.send .llm{display:grid;gap:4px;font-size:.85rem;color:var(--muted)}
+.send select{border:1px solid var(--border);border-radius:10px;padding:10px;background:var(--surface);color:var(--text);font-size:1rem}
+.send .btn{padding:10px 18px}
+.send-extra{margin-top:12px;gap:18px;font-size:.88rem}
+.send-extra .check{font-size:.88rem}
+#copied{margin:12px 0 0;color:var(--good)}
+@media (max-width:560px){.send{grid-template-columns:1fr}}
 @media (max-width:560px){
   .fields{grid-template-columns:1fr 1fr}
   .fields label:first-child{grid-column:1/-1}
@@ -167,7 +176,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 <header class="top">
   <button class="brand" id="homeBtn" title="Home"><i></i>JSON Quiz</button>
   <div class="top-actions">
-    <button class="btn ghost" id="promptBtn">AI prompt</button>
+    <button class="btn ghost" id="promptBtn">Make with AI</button>
     <a class="btn ghost icon-link" id="repoLink" href="https://github.com/haoyuanran/myLLMdoesntsupportquizzes" target="_blank" rel="noopener" title="View the source on GitHub" aria-label="View the source on GitHub"><svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
     <button class="btn ghost" id="themeBtn" title="Toggle light/dark" aria-label="Toggle light or dark theme">◐</button>
   </div>
@@ -177,21 +186,47 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <!-- HOME -->
   <section id="home">
     <h1>Turn JSON into a quiz</h1>
-    <p class="lead">Load a quiz file, or paste JSON straight from Claude, ChatGPT or Gemini. Need one? Click <button class="link" id="promptLink">AI prompt</button> for a ready-to-copy prompt.</p>
+    <p class="lead">Have an AI write the quiz, or load one you already have.</p>
 
+    <div class="card ai-card" id="aiCard">
+      <h2><span class="step">1</span>Make a quiz with AI</h2>
+      <p class="sub">Choose a topic and a chatbot. The prompt is copied for you and the chatbot opens beside this window.</p>
+      <div class="fields">
+        <label>Topic<input type="text" id="pTopic" placeholder="e.g. Photosynthesis, GCSE level"></label>
+        <label>How many<input type="number" id="pCount" value="15" min="1" max="200"></label>
+        <label>Mix<select id="pMix">
+          <option value="mix">MCQ + flashcards</option>
+          <option value="mcq">MCQ only</option>
+          <option value="card">Flashcards only</option>
+        </select></label>
+      </div>
+      <div class="send">
+        <label class="llm">Chatbot<select id="llmPick"></select></label>
+        <button class="btn primary" id="openLlm">Copy prompt &amp; open ↗</button>
+      </div>
+      <div class="row send-extra">
+        <label class="check sub"><input type="checkbox" id="asPopup" checked>Open as popup window</label>
+        <button class="link" id="previewPrompt">See the prompt</button>
+        <button class="link" id="copyPrompt">Copy only</button>
+      </div>
+      <p class="sub" id="copied" hidden></p>
+    </div>
+
+    <h2 class="section-title"><span class="step">2</span>Load the quiz</h2>
+    <p class="sub" style="margin:4px 0 14px">Copy the chatbot's whole reply and paste it below. Extra text around the JSON is fine.</p>
+    <textarea id="pasteBox" placeholder='Paste the reply here, e.g. {"title": "My quiz", "questions": [ ... ]}' spellcheck="false"></textarea>
+    <div class="row">
+      <button class="btn primary" id="loadPaste">Load pasted quiz</button>
+      <button class="btn" id="sampleBtn">Try a sample quiz</button>
+    </div>
+    <div class="error" id="error" hidden></div>
+
+    <div class="or">or use a file</div>
     <label class="drop" id="drop">
       <input type="file" id="fileInput" accept=".json,application/json,text/plain" hidden>
       <strong>Drop a .json file here</strong>
       <span>or click to choose one</span>
     </label>
-
-    <div class="or">or paste it</div>
-    <textarea id="pasteBox" placeholder='{"title": "My quiz", "questions": [ ... ]}' spellcheck="false"></textarea>
-    <div class="row">
-      <button class="btn primary" id="loadPaste">Load pasted JSON</button>
-      <button class="btn" id="sampleBtn">Try a sample quiz</button>
-    </div>
-    <div class="error" id="error" hidden></div>
 
     <div id="recentWrap" hidden>
       <h2 class="section-title">Recent quizzes</h2>
@@ -255,26 +290,11 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 </main>
 
 <dialog id="promptDialog">
-  <div class="dlg-head"><h2>Prompt for any AI</h2><button class="btn ghost" id="closeDlg" aria-label="Close">✕</button></div>
+  <div class="dlg-head"><h2>The prompt</h2><button class="btn ghost" id="closeDlg" aria-label="Close">✕</button></div>
   <div class="dlg-body">
-    <p>Fill in a topic, pick a chatbot and click <b>Copy &amp; open</b>. When it replies, copy the reply and paste it into the box on the home screen (code fences and extra text are fine).</p>
-    <div class="fields">
-      <label>Topic<input type="text" id="pTopic" placeholder="e.g. Photosynthesis, GCSE level"></label>
-      <label>How many<input type="number" id="pCount" value="15" min="1" max="200"></label>
-      <label>Mix<select id="pMix">
-        <option value="mix">MCQ + flashcards</option>
-        <option value="mcq">MCQ only</option>
-        <option value="card">Flashcards only</option>
-      </select></label>
-    </div>
+    <p>This is what gets sent to the chatbot. It works with any AI, so you can also copy it and paste it anywhere.</p>
     <pre id="promptText"></pre>
-    <div class="row send">
-      <select id="llmPick" aria-label="AI chatbot to open"></select>
-      <button class="btn primary" id="openLlm">Copy &amp; open</button>
-      <button class="btn" id="copyPrompt">Copy only</button>
-      <label class="check sub"><input type="checkbox" id="asPopup" checked>Open as popup window</label>
-    </div>
-    <p class="sub" id="copied" hidden></p>
+    <div class="row"><button class="btn primary" id="dlgCopy">Copy prompt</button><span class="sub" id="dlgCopied" hidden>Copied ✓</span></div>
   </div>
 </dialog>
 
@@ -750,9 +770,10 @@ Rules:
 }
 const updatePrompt = () => { $('promptText').textContent = buildPrompt(); $('copied').hidden = true; };
 ['pTopic', 'pCount', 'pMix'].forEach(id => $(id).addEventListener('input', updatePrompt));
-const openPrompt = () => { updatePrompt(); $('promptDialog').showModal(); $('pTopic').focus(); };
-$('promptBtn').onclick = openPrompt;
-$('promptLink').onclick = openPrompt;
+$('previewPrompt').onclick = () => { updatePrompt(); $('dlgCopied').hidden = true; $('promptDialog').showModal(); };
+$('dlgCopy').onclick = async () => { await copyText(buildPrompt()); $('dlgCopied').hidden = false; };
+// header button jumps to the AI card on the home screen
+$('promptBtn').onclick = () => { show('home'); $('aiCard').scrollIntoView({ block: 'start' }); $('pTopic').focus(); };
 $('closeDlg').onclick = () => $('promptDialog').close();
 $('promptDialog').addEventListener('click', e => { if (e.target === $('promptDialog')) $('promptDialog').close(); });
 async function copyText(text) {
@@ -763,7 +784,7 @@ async function copyText(text) {
   }
 }
 const flash = msg => { $('copied').textContent = msg; $('copied').hidden = false; };
-$('copyPrompt').onclick = async () => { await copyText(buildPrompt()); flash('Copied ✓ Paste it into any chatbot.'); };
+$('copyPrompt').onclick = async () => { await copyText(buildPrompt()); flash('Copied ✓ Paste it into any chatbot, then paste its reply into step 2 below.'); };
 
 // `q` builds a link that pre-fills the prompt; sites without one just open and you paste.
 const LLMS = [
@@ -799,7 +820,7 @@ $('openLlm').onclick = () => {
   copyText(text);
   flash(win === null && $('asPopup').checked
     ? 'Your browser blocked the popup. Allow popups for this page, or untick "Open as popup window". The prompt is copied.'
-    : `Prompt copied ✓ ${llm.q ? 'It should already be filled in on ' + llm.name + '. If not, just paste it.' : 'Paste it into ' + llm.name + ' (Ctrl+V).'} Then paste the reply back here.`);
+    : `Prompt copied ✓ ${llm.q ? 'It should already be filled in on ' + llm.name + '. If not, just paste it.' : 'Paste it into ' + llm.name + ' (Ctrl+V).'} When it replies, paste the reply into step 2 below.`);
 };
 
 /* ---------- boot ---------- */

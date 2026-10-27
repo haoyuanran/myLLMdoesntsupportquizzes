@@ -15,9 +15,9 @@ The format is simple enough for Claude, ChatGPT or Gemini to write. See [QUIZ_FO
 
 ## Making a quiz with an AI
 
-1. Click **AI prompt** in the app and type a topic.
-2. Pick a chatbot from the dropdown (ChatGPT, Claude, Gemini, Copilot, Perplexity, Grok, DeepSeek, Mistral, Meta AI) and click **Copy & open**. It opens in a popup window beside the quiz with the prompt copied to your clipboard. Where the site supports it, the prompt is already typed in for you.
-3. Paste the reply back into the app and click **Load pasted JSON**. Code fences and extra chat text are fine.
+1. On the home screen, under **Make a quiz with AI**, type a topic.
+2. Pick a chatbot from the dropdown (ChatGPT, Claude, Gemini, Copilot, Perplexity, Grok, DeepSeek, Mistral, Meta AI) and click **Copy prompt & open**. It opens in a popup window beside the quiz with the prompt copied to your clipboard. Where the site supports it, the prompt is already typed in for you.
+3. Copy the chatbot's reply, paste it under **Load the quiz** and click **Load pasted quiz**. Code fences and extra chat text are fine.
 
 ## Features
 
