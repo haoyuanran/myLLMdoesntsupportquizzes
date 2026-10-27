@@ -1,6 +1,6 @@
 # myLLMdoesntsupportquizzes
 
-100% vibecoded app that lets LLMs with no built-in quiz functionality generate quizzes with a formatted JSON file.
+its nice that Gemini got its own quiz function, what if you don't use Gemini? I mean heck, even Gemini itself skip the quiz feature sometimes... What if... Having AI make a quiz is as easy as copy-pasting a prompt, life would be so easy
 
 **JSON Quiz** turns a JSON file into an interactive quiz with multiple-choice questions and flip-card flashcards.
 The format is simple enough for Claude, ChatGPT or Gemini to write. See [QUIZ_FORMAT.md](QUIZ_FORMAT.md).
