@@ -149,6 +149,9 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .fields label{display:grid;gap:4px;font-size:.85rem;color:var(--muted)}
 .fields input,.fields select{border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:var(--surface);color:var(--text)}
 #promptText{white-space:pre-wrap;font-size:.8rem;max-height:340px;margin:0 0 12px}
+.send select{border:1px solid var(--border);border-radius:10px;padding:9px 10px;background:var(--surface);color:var(--text);min-width:150px}
+.send .check{font-size:.85rem;margin-left:auto}
+#copied{margin:10px 0 0}
 @media (max-width:560px){
   .fields{grid-template-columns:1fr 1fr}
   .fields label:first-child{grid-column:1/-1}
@@ -252,7 +255,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 <dialog id="promptDialog">
   <div class="dlg-head"><h2>Prompt for any AI</h2><button class="btn ghost" id="closeDlg" aria-label="Close">✕</button></div>
   <div class="dlg-body">
-    <p>Fill in a topic, copy the prompt, paste it into Claude, ChatGPT or Gemini, then paste the reply back here (code fences and extra text are fine).</p>
+    <p>Fill in a topic, pick a chatbot and click <b>Copy &amp; open</b>. When it replies, copy the reply and paste it into the box on the home screen (code fences and extra text are fine).</p>
     <div class="fields">
       <label>Topic<input type="text" id="pTopic" placeholder="e.g. Photosynthesis, GCSE level"></label>
       <label>How many<input type="number" id="pCount" value="15" min="1" max="200"></label>
@@ -263,7 +266,13 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       </select></label>
     </div>
     <pre id="promptText"></pre>
-    <div class="row"><button class="btn primary" id="copyPrompt">Copy prompt</button><span id="copied" class="sub" hidden>Copied ✓</span></div>
+    <div class="row send">
+      <select id="llmPick" aria-label="AI chatbot to open"></select>
+      <button class="btn primary" id="openLlm">Copy &amp; open</button>
+      <button class="btn" id="copyPrompt">Copy only</button>
+      <label class="check sub"><input type="checkbox" id="asPopup" checked>Open as popup window</label>
+    </div>
+    <p class="sub" id="copied" hidden></p>
   </div>
 </dialog>
 
@@ -744,14 +753,51 @@ $('promptBtn').onclick = openPrompt;
 $('promptLink').onclick = openPrompt;
 $('closeDlg').onclick = () => $('promptDialog').close();
 $('promptDialog').addEventListener('click', e => { if (e.target === $('promptDialog')) $('promptDialog').close(); });
-$('copyPrompt').onclick = async () => {
-  const text = buildPrompt();
+async function copyText(text) {
   try { await navigator.clipboard.writeText(text); }
   catch {
     const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
     try { document.execCommand('copy'); } catch {} ta.remove();
   }
-  $('copied').hidden = false;
+}
+const flash = msg => { $('copied').textContent = msg; $('copied').hidden = false; };
+$('copyPrompt').onclick = async () => { await copyText(buildPrompt()); flash('Copied ✓ Paste it into any chatbot.'); };
+
+// `q` builds a link that pre-fills the prompt; sites without one just open and you paste.
+const LLMS = [
+  { id: 'chatgpt',    name: 'ChatGPT',        url: 'https://chatgpt.com/',              q: p => 'https://chatgpt.com/?q=' + p },
+  { id: 'claude',     name: 'Claude',         url: 'https://claude.ai/new',             q: p => 'https://claude.ai/new?q=' + p },
+  { id: 'gemini',     name: 'Gemini',         url: 'https://gemini.google.com/app' },
+  { id: 'copilot',    name: 'Microsoft Copilot', url: 'https://copilot.microsoft.com/', q: p => 'https://copilot.microsoft.com/?q=' + p },
+  { id: 'perplexity', name: 'Perplexity',     url: 'https://www.perplexity.ai/',        q: p => 'https://www.perplexity.ai/search?q=' + p },
+  { id: 'grok',       name: 'Grok',           url: 'https://grok.com/',                 q: p => 'https://grok.com/?q=' + p },
+  { id: 'deepseek',   name: 'DeepSeek',       url: 'https://chat.deepseek.com/' },
+  { id: 'mistral',    name: 'Mistral Le Chat', url: 'https://chat.mistral.ai/chat',     q: p => 'https://chat.mistral.ai/chat?q=' + p },
+  { id: 'meta',       name: 'Meta AI',        url: 'https://www.meta.ai/' }
+];
+$('llmPick').innerHTML = LLMS.map(l => `<option value="${l.id}">${esc(l.name)}</option>`).join('');
+$('llmPick').value = store.get('jsonquiz.llm', 'chatgpt');
+$('asPopup').checked = store.get('jsonquiz.popup', true);
+$('llmPick').onchange = () => store.set('jsonquiz.llm', $('llmPick').value);
+$('asPopup').onchange = () => store.set('jsonquiz.popup', $('asPopup').checked);
+
+$('openLlm').onclick = () => {
+  const llm = LLMS.find(l => l.id === $('llmPick').value) || LLMS[0];
+  const text = buildPrompt();
+  const url = llm.q ? llm.q(encodeURIComponent(text)) : llm.url;
+  // open synchronously (before awaiting the clipboard) so popup blockers treat it as a user click
+  let win;
+  if ($('asPopup').checked) {
+    const w = Math.min(560, screen.availWidth), h = Math.min(900, screen.availHeight - 40);
+    const left = Math.max(0, (window.screenX || 0) + window.outerWidth - w / 3);
+    win = window.open(url, 'jsonquiz-llm', `popup=yes,width=${w},height=${h},left=${left},top=${window.screenY || 0}`);
+  } else {
+    win = window.open(url, '_blank', 'noopener');
+  }
+  copyText(text);
+  flash(win === null && $('asPopup').checked
+    ? 'Your browser blocked the popup. Allow popups for this page, or untick "Open as popup window". The prompt is copied.'
+    : `Prompt copied ✓ ${llm.q ? 'It should already be filled in on ' + llm.name + '. If not, just paste it.' : 'Paste it into ' + llm.name + ' (Ctrl+V).'} Then paste the reply back here.`);
 };
 
 /* ---------- boot ---------- */
