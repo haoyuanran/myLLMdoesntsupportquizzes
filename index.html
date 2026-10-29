@@ -90,6 +90,8 @@ textarea:focus,input[type=text]:focus,input[type=number]:focus{outline:2px solid
 .seg input{position:absolute;opacity:0;pointer-events:none}
 .seg label:has(input:checked){background:var(--surface);box-shadow:var(--shadow);font-weight:600}
 .check{display:flex;gap:10px;align-items:center;cursor:pointer}
+.side-opt{display:grid;gap:6px;justify-items:start}
+.side-opt .sub{font-size:.9rem}
 .check input{width:18px;height:18px;accent-color:var(--accent)}
 
 .progress{height:6px;background:var(--surface-2);border-radius:99px;overflow:hidden}
@@ -197,6 +199,13 @@ textarea:focus,input[type=text]:focus,input[type=number]:focus{outline:2px solid
 .fuse.low .fuse-left{color:var(--bad)}
 .fuse-delta{position:absolute;right:0;top:-1.3em;font-weight:700;opacity:0;pointer-events:none}
 .fuse-delta.show{animation:delta .9s ease-out}
+.fuse-set{display:grid;gap:14px}
+.fs-row{display:grid;grid-template-columns:1fr minmax(120px,1.2fr) auto;gap:12px;align-items:center}
+.fs-row input[type=range]{width:100%;accent-color:var(--accent)}
+.fs-val{display:flex;align-items:center;gap:4px;color:var(--muted);white-space:nowrap}
+.fs-unit{display:inline-block;width:1.2em}
+.fs-val input{width:4.8em;border:1px solid var(--border);border-radius:8px;padding:4px 6px;background:var(--surface);color:var(--text);text-align:right}
+@media (max-width:520px){.fs-row{grid-template-columns:1fr auto;row-gap:4px}.fs-row input[type=range]{grid-column:1/-1;grid-row:2}}
 @keyframes delta{0%{opacity:1;transform:translateY(6px)}100%{opacity:0;transform:translateY(-10px)}}
 .blanks.gaps{font-size:1.35rem;margin-bottom:20px}
 .blanks.gaps .ch{width:auto;min-width:.8em;border-color:transparent}
@@ -315,6 +324,15 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
           <label><input type="radio" name="mode" value="all" checked>Everything</label>
           <label><input type="radio" name="mode" value="mcq">Multiple choice only</label>
           <label><input type="radio" name="mode" value="card">Flashcards only</label>
+        </div>
+        <div class="side-opt" id="sideRow">
+          <b>Flashcard direction</b>
+          <div class="seg" id="sideSeg">
+            <label><input type="radio" name="side" value="auto" checked>Auto</label>
+            <label><input type="radio" name="side" value="front">Show front, answer back</label>
+            <label><input type="radio" name="side" value="back">Show back, answer front</label>
+          </div>
+          <span class="sub" id="sideNote"></span>
         </div>
         <label class="check"><input type="checkbox" id="shufQ">Shuffle question order</label>
         <label class="check"><input type="checkbox" id="shufO" checked>Shuffle answer options</label>
@@ -604,6 +622,9 @@ function openSetup() {
   $('nMcq').textContent = nM; $('nCard').textContent = nC;
   $('modeSeg').hidden = !(nM && nC);
   document.querySelector('input[name=mode][value=all]').checked = true;
+  $('sideRow').hidden = !nC;
+  document.querySelector(`input[name=side][value=${store.get('jsonquiz.side', 'auto')}]`).checked = true;
+  sideNote();
   const w = $('warn');
   w.hidden = !quiz.warnings.length;
   if (quiz.warnings.length) w.innerHTML = `<b>${quiz.warnings.length} item(s) couldn't be read and were skipped:</b><ul>${quiz.warnings.slice(0, 8).map(x => `<li>${esc(x)}</li>`).join('')}</ul>`;
@@ -612,8 +633,19 @@ function openSetup() {
   $('startBtn').focus();
 }
 
+// which flashcard side is shown ('front' / 'back'); 'auto' shows the front when studying and picks per card in spelling games
+const side = () => document.querySelector('input[name=side]:checked').value;
+const SIDE_NOTES = {
+  auto: 'Study shows the front. Spelling games show the back and you type the front, unless the front is too long to type.',
+  front: 'Study shows the front first. In games you see the front and type the back.',
+  back: 'Study shows the back first. In games you see the back and type the front.'
+};
+function sideNote() { $('sideNote').textContent = SIDE_NOTES[side()]; }
+$('sideSeg').addEventListener('change', () => { store.set('jsonquiz.side', side()); sideNote(); renderGameButtons(); });
+
 function start(items) {
   const mode = document.querySelector('input[name=mode]:checked').value;
+  const rev = side() === 'back';
   let list = items || quiz.items.filter(i => mode === 'all' || i.kind === mode);
   if (!list.length) list = quiz.items;
   if ($('shufQ').checked) list = shuffle(list);
@@ -623,7 +655,7 @@ function start(items) {
     items: list.map(it => ({
       it,
       order: it.kind === 'mcq' ? (shufO && !it.noShuffle ? shuffle(it.options.map((_, k) => k)) : it.options.map((_, k) => k)) : null,
-      done: false, ok: false, chosen: [], sel: new Set(), flipped: false
+      done: false, ok: false, chosen: [], sel: new Set(), flipped: false, rev
     }))
   };
   show('play');
@@ -708,12 +740,13 @@ function paintAnswer(c) {
 
 function renderCard(c) {
   const it = c.it;
+  const [one, two] = c.rev ? [['Back', it.back], ['Front', it.front]] : [['Front', it.front], ['Back', it.back]];
   $('stage').innerHTML = `
     ${hintHtml(it.hint)}
     <div class="flash${c.flipped ? ' flipped' : ''}" id="flash" tabindex="0" role="button" aria-label="Flashcard, press to flip">
       <div class="flash-inner">
-        <div class="face front"><span class="face-label">Front</span><div>${fmt(it.front)}</div></div>
-        <div class="face back"><span class="face-label">Back</span><div>${fmt(it.back)}</div></div>
+        <div class="face front"><span class="face-label">${one[0]}</span><div>${fmt(one[1])}</div></div>
+        <div class="face back"><span class="face-label">${two[0]}</span><div>${fmt(two[1])}</div></div>
       </div>
     </div>
     <p class="tap" id="tapHint">${c.flipped ? 'How did you do?' : 'Click the card to flip it'}</p>
@@ -809,7 +842,8 @@ const bestKey = game => `jsonquiz.best.${game}:${quiz.title}`;
 
 // term/definition pairs; falls back to single-answer MCQs when there are too few flashcards
 function gamePairs() {
-  const cards = quiz.items.filter(i => i.kind === 'card').map(i => ({ a: i.front, b: i.back }));
+  const rev = side() === 'back';
+  const cards = quiz.items.filter(i => i.kind === 'card').map(i => rev ? { a: i.back, b: i.front } : { a: i.front, b: i.back });
   if (cards.length >= 2) return cards;
   return cards.concat(quiz.items.filter(i => i.kind === 'mcq')
     .map(i => ({ a: i.question, b: i.correct.map(k => i.options[k]).join(', ') })));
@@ -824,14 +858,16 @@ function renderGameButtons() {
   const bm = store.get(bestKey('match'), null), bt = store.get(bestKey('tf'), null);
   $('matchBest').textContent = bm != null ? `Best: ${bm.toFixed(1)}s` : '';
   $('tfBest').textContent = bt != null ? `Best: ${bt} points` : '';
+  // a fixed card direction can leave nothing short enough to type
+  const noSpell = side() === 'auto' ? 'No short answers to spell in this quiz.' : 'Nothing short enough to type in this direction. Try another one.';
   const nS = spellPairs().length, bs = store.get(bestKey('spell'), null), bg = store.get(bestKey('gaps'), null);
   $('resMatch').hidden = $('resTf').hidden = !ok;
   $('spellBtn').disabled = $('resSpell').hidden = $('gapsBtn').disabled = $('resGaps').hidden = !nS;
-  $('spellBest').textContent = !nS ? 'No short answers to spell in this quiz.' : bs != null ? `Best: ${bs}%` : '';
-  $('gapsBest').textContent = !nS ? 'No short answers to spell in this quiz.' : bg != null ? `Best: ${bg}%` : '';
+  $('spellBest').textContent = !nS ? noSpell : bs != null ? `Best: ${bs}%` : '';
+  $('gapsBest').textContent = !nS ? noSpell : bg != null ? `Best: ${bg}%` : '';
   const bf = store.get(bestKey('fuse'), null);
   $('fuseBtn').disabled = $('resFuse').hidden = !nS;
-  $('fuseBest').textContent = !nS ? 'No short answers to spell in this quiz.' : bf != null ? `Best: ${bf.toFixed(1)}s` : '';
+  $('fuseBest').textContent = !nS ? noSpell : bf != null ? `Best: ${bf.toFixed(1)}s` : '';
   $('resGames').hidden = !ok && !nS;
 }
 
@@ -841,8 +877,9 @@ function spellPairs() {
   // "Astronomical Unit (AU)": type the part outside the brackets
   const spellable = list => list.map(([ask, w]) => ({ ask, full: plain(w), word: plain(w).replace(/\s*\([^)]*\)/g, '').trim() || plain(w) }))
     .filter(p => p.word.length && p.word.length <= 30 && p.word.split(/\s+/).length <= 4 && !p.word.endsWith('?'));
-  // type the front (the term) when it's short enough, otherwise the back
-  const cards = quiz.items.filter(i => i.kind === 'card').map(i => spellable([[i.back, i.front]])[0] || spellable([[i.front, i.back]])[0]).filter(Boolean);
+  // auto: type the front (the term) when it's short enough, otherwise the back. A fixed direction skips cards whose answer is too long.
+  const s = side();
+  const cards = quiz.items.filter(i => i.kind === 'card').map(i => (s !== 'front' && spellable([[i.back, i.front]])[0]) || (s !== 'back' && spellable([[i.front, i.back]])[0])).filter(Boolean);
   if (cards.length >= 2) return cards;
   return cards.concat(spellable(quiz.items.filter(i => i.kind === 'mcq' && i.correct.length === 1)
     .map(i => [i.question, i.options[i.correct[0]]])));
@@ -1119,13 +1156,56 @@ function endSpell() {
   ${G.missed.length ? `<h2 class="section-title">To review</h2><ul class="missed">${G.missed.map(p => `<li><div>${fmt(p.ask)}</div><div class="ans">${esc(p.full)}</div></li>`).join('')}</ul>` : ''}`);
 }
 
-// Fuse: spell against a burning fuse. Right answers add time (more for longer words, 5% less with each word),
-// wrong answers and skips burn it. The score is how long you lasted.
-const FUSE = { start: 20, max: 30, wrong: 3, skip: 5 };
-function startFuse() {
+// Fuse: spell against a burning fuse. Right answers add time (more for longer words, a bit less with each word),
+// wrong answers and skips burn it. The score is how long you lasted. Every number is adjustable before you start.
+const FUSE_DEFAULTS = { start: 20, max: 30, base: 2, perLetter: 0.3, shrink: 5, wrong: 3, skip: 5 };
+// [setting, label, unit, min, max, step]
+const FUSE_FIELDS = [
+  ['start', 'Starting time', 's', 5, 120, 1],
+  ['max', 'Longest the fuse can get', 's', 10, 300, 1],
+  ['base', 'Time for each right answer', 's', 0, 20, 0.5],
+  ['perLetter', 'Extra time per letter', 's', 0, 2, 0.1],
+  ['shrink', 'Bonus shrinks each word by', '%', 0, 20, 1],
+  ['wrong', 'Wrong answer costs', 's', 0, 30, 0.5],
+  ['skip', 'Skip costs', 's', 0, 30, 0.5]
+];
+const fuseIsDefault = cfg => FUSE_FIELDS.every(([k]) => cfg[k] === FUSE_DEFAULTS[k]);
+// best times are kept per set of settings; the default one is what the game button shows
+const fuseBestKey = cfg => fuseIsDefault(cfg) ? bestKey('fuse') : bestKey('fuse:' + FUSE_FIELDS.map(([k]) => cfg[k]).join(','));
+
+function fuseSettings() {
   stopGame();
+  G.kind = 'fuse-setup';
+  const cfg = { ...FUSE_DEFAULTS, ...(G.cfg || store.get('jsonquiz.fuse', {})) };
+  $('gameTitle').textContent = '🧨 Fuse';
+  $('gameStat').textContent = '';
+  show('game');
+  $('gameStage').innerHTML = `<div class="card fuse-set">
+    <p class="sub">Set up the fuse, then light it. Your settings are remembered.</p>
+    ${FUSE_FIELDS.map(([k, label, unit, min, max, step]) => `<div class="fs-row">
+      <label for="fs-${k}">${label}</label>
+      <input type="range" id="fs-${k}" data-fs="${k}" min="${min}" max="${max}" step="${step}" value="${cfg[k]}">
+      <span class="fs-val"><input type="number" data-fs="${k}" min="${min}" max="${max}" step="${step}" value="${cfg[k]}" aria-label="${label}"><span class="fs-unit">${unit}</span></span>
+    </div>`).join('')}
+    <div class="row"><button class="btn primary" data-fu="go">🔥 Light the fuse</button><button class="btn ghost" data-fu="reset">Reset to defaults</button></div>
+  </div>`;
+}
+
+function readFuseSettings() {
+  const cfg = {};
+  for (const [k, , , min, max] of FUSE_FIELDS) {
+    const v = parseFloat(document.querySelector(`input[type=range][data-fs=${k}]`).value);
+    cfg[k] = Math.min(max, Math.max(min, isNaN(v) ? FUSE_DEFAULTS[k] : v));
+  }
+  cfg.max = Math.max(cfg.max, cfg.start);
+  return cfg;
+}
+
+function startFuse(cfg) {
+  stopGame();
+  store.set('jsonquiz.fuse', cfg);
   const now = performance.now();
-  Object.assign(G, { kind: 'fuse', pairs: spellPairs(), queue: [], start: now, end: now + FUSE.start * 1000, spelled: 0, mistakes: 0, missed: new Map(), cur: null });
+  Object.assign(G, { kind: 'fuse', cfg, pairs: spellPairs(), queue: [], start: now, end: now + cfg.start * 1000, spelled: 0, mistakes: 0, missed: new Map(), cur: null });
   $('gameTitle').textContent = '🧨 Fuse';
   show('game');
   $('gameStage').innerHTML = `
@@ -1134,8 +1214,8 @@ function startFuse() {
     <div class="blanks" id="spBlanks"></div>
     <input class="spell-in" id="spIn" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Type the answer">
     <div class="tf-fb" id="spFb"></div>
-    <div class="row spell-acts"><button class="btn" data-fu="skip">Skip (−${FUSE.skip}s)<kbd>Esc</kbd></button></div>
-    <p class="kbd"><kbd>Enter</kbd> check · right answers add time, longer words add more · wrong answers −${FUSE.wrong}s · accents count</p>`;
+    <div class="row spell-acts"><button class="btn" data-fu="skip">Skip (−${cfg.skip}s)<kbd>Esc</kbd></button></div>
+    <p class="kbd"><kbd>Enter</kbd> check · right answers add time, longer words add more · wrong answers −${cfg.wrong}s · accents count</p>`;
   nextFuse();
   tickFuse();
   G.timer = setInterval(tickFuse, 50);
@@ -1159,7 +1239,7 @@ function nextFuse() {
 function tickFuse() {
   if (G.kind !== 'fuse') return;
   const now = performance.now(), left = Math.max(0, (G.end - now) / 1000);
-  $('fuRope').style.width = left / FUSE.max * 100 + '%';
+  $('fuRope').style.width = left / G.cfg.max * 100 + '%';
   $('fuLeft').textContent = left.toFixed(1) + 's';
   $('fuse').classList.toggle('low', left < 5);
   $('gameStat').textContent = `⏱ ${((Math.min(now, G.end) - G.start) / 1000).toFixed(1)}s · ${G.spelled} spelled`;
@@ -1168,7 +1248,7 @@ function tickFuse() {
 
 function fuseDelta(sec) {
   const was = G.end;
-  G.end = Math.min(G.end + sec * 1000, performance.now() + FUSE.max * 1000);
+  G.end = Math.min(G.end + sec * 1000, performance.now() + G.cfg.max * 1000);
   // show what actually changed: a bonus at a full fuse is cut short
   const got = (G.end - was) / 1000, d = $('fuDelta');
   d.textContent = sec > 0 && got < 0.05 ? 'Full!' : `${got > 0 ? '+' : '−'}${Math.abs(got).toFixed(1)}s`;
@@ -1181,7 +1261,9 @@ function fuseCheck() {
   if (!got) return;
   if (got === want || got === norm(c.full)) {
     G.spelled++;
-    fuseDelta(Math.max(1, (2 + c.chars.filter(isLetter).length * 0.3) * 0.95 ** (G.spelled - 1)));
+    // the bonus never shrinks below 1s (or below the full bonus, if that's smaller)
+    const { base, perLetter, shrink } = G.cfg, full = base + c.chars.filter(isLetter).length * perLetter;
+    fuseDelta(Math.max(Math.min(1, full), full * (1 - shrink / 100) ** (G.spelled - 1)));
     $('spFb').innerHTML = `<strong class="good-t">✓ ${esc(c.full)}</strong>`;
     const card = $('spCard');
     card.classList.add('ok');
@@ -1190,7 +1272,7 @@ function fuseCheck() {
   } else {
     G.mistakes++;
     G.missed.set(c.full, c);
-    fuseDelta(-FUSE.wrong);
+    fuseDelta(-G.cfg.wrong);
     const accent = noAccents(got) === noAccents(want) || noAccents(got) === noAccents(norm(c.full));
     const close = editDist(got, want) <= Math.max(1, Math.floor(want.length / 6));
     $('spFb').innerHTML = accent ? '<strong class="bad-t">Almost!</strong> Check the accents.'
@@ -1204,7 +1286,7 @@ function fuseCheck() {
 function fuseSkip() {
   const c = G.cur;
   G.missed.set(c.full, c);
-  fuseDelta(-FUSE.skip);
+  fuseDelta(-G.cfg.skip);
   $('spFb').innerHTML = `Skipped. It was <strong>${esc(c.full)}</strong>.`;
   nextFuse();
   $('spIn').focus();
@@ -1212,15 +1294,15 @@ function fuseSkip() {
 }
 
 function endFuse() {
-  const lasted = (G.end - G.start) / 1000, key = bestKey('fuse'), best = store.get(key, null);
+  const lasted = (G.end - G.start) / 1000, key = fuseBestKey(G.cfg), best = store.get(key, null), custom = !fuseIsDefault(G.cfg);
   const isBest = best == null || lasted > best;
   if (isBest) store.set(key, lasted);
   const missed = [...G.missed.values()];
   gameEnd(`<div class="card game-end">
     <h2>💥 Boom!</h2>
     <div class="big">${lasted.toFixed(1)}s</div>
-    <p class="sub">lasted · ${G.spelled} word${G.spelled === 1 ? '' : 's'} spelled · ${G.mistakes} mistake${G.mistakes === 1 ? '' : 's'} · ${isBest ? 'New best 🎉' : `Best: ${best.toFixed(1)}s`}</p>
-    <div class="row"><button class="btn primary" data-again="fuse">Play again</button><button class="btn" data-back>Back</button></div>
+    <p class="sub">lasted · ${G.spelled} word${G.spelled === 1 ? '' : 's'} spelled · ${G.mistakes} mistake${G.mistakes === 1 ? '' : 's'} · ${isBest ? 'New best 🎉' : `Best: ${best.toFixed(1)}s`}${custom ? ' with these settings' : ''}</p>
+    <div class="row"><button class="btn primary" data-again="fuse">Play again</button><button class="btn" data-fu="settings">Change settings</button><button class="btn" data-back>Back</button></div>
   </div>
   ${missed.length ? `<h2 class="section-title">To review</h2><ul class="missed">${missed.map(p => `<li><div>${fmt(p.ask)}</div><div class="ans">${esc(p.full)}</div></li>`).join('')}</ul>` : ''}`);
 }
@@ -1261,9 +1343,17 @@ $('gameStage').addEventListener('click', e => {
   if (tf) return tfAnswer(tf.dataset.tf === '1');
   const sp = t.closest('[data-sp]');
   if (sp) return spellAction(sp.dataset.sp);
-  if (t.closest('[data-fu]') && G.kind === 'fuse') return fuseSkip();
+  const fu = t.closest('[data-fu]');
+  if (fu) {
+    const a = fu.dataset.fu;
+    if (a === 'skip' && G.kind === 'fuse') return fuseSkip();
+    if (a === 'go') return startFuse(readFuseSettings());
+    if (a === 'settings') return fuseSettings();
+    if (a === 'reset') for (const el of document.querySelectorAll('[data-fs]')) el.value = FUSE_DEFAULTS[el.dataset.fs];
+    return;
+  }
   const again = t.closest('[data-again]');
-  if (again) return ({ match: startMatch, tf: startTF, spell: () => startSpell('spell'), gaps: () => startSpell('gaps'), fuse: startFuse })[again.dataset.again]();
+  if (again) return ({ match: startMatch, tf: startTF, spell: () => startSpell('spell'), gaps: () => startSpell('gaps'), fuse: () => startFuse(G.cfg) })[again.dataset.again]();
   if (t.closest('[data-back]')) openSetup();
 });
 $('gameBack').onclick = () => openSetup();
@@ -1271,7 +1361,13 @@ $('matchBtn').onclick = $('resMatch').onclick = startMatch;
 $('tfBtn').onclick = $('resTf').onclick = startTF;
 $('spellBtn').onclick = $('resSpell').onclick = () => startSpell('spell');
 $('gapsBtn').onclick = $('resGaps').onclick = () => startSpell('gaps');
-$('fuseBtn').onclick = $('resFuse').onclick = startFuse;
+$('fuseBtn').onclick = $('resFuse').onclick = fuseSettings;
+// keep each Fuse setting's slider and number box in step
+$('gameStage').addEventListener('input', e => {
+  const k = e.target.dataset.fs;
+  if (!k) return;
+  for (const el of document.querySelectorAll(`[data-fs=${k}]`)) if (el !== e.target) el.value = e.target.value;
+});
 document.addEventListener('keydown', e => {
   if (G.kind !== 'tf' || e.ctrlKey || e.metaKey || e.altKey) return;
   const k = e.key.toLowerCase();
