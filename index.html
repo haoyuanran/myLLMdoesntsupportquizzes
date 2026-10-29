@@ -92,6 +92,20 @@ textarea:focus,input[type=text]:focus,input[type=number]:focus{outline:2px solid
 .check{display:flex;gap:10px;align-items:center;cursor:pointer}
 .side-opt{display:grid;gap:6px;justify-items:start}
 .side-opt .sub{font-size:.9rem}
+#sideSeg{position:relative}
+.side-tip{position:absolute;left:0;top:calc(100% + 8px);z-index:10;width:max-content;max-width:calc(100vw - 72px);display:grid;gap:10px;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);font-weight:400;font-size:.85rem;opacity:0;visibility:hidden;transform:translateY(-4px);transition:opacity .15s,transform .15s,visibility .15s;pointer-events:none}
+.seg label:hover .side-tip,.seg label:has(input:focus-visible) .side-tip{opacity:1;visibility:visible;transform:none}
+.tip-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tip-k{width:3.6em;color:var(--muted);font-weight:600}
+.mini-card,.mini-type{display:grid;min-width:76px;max-width:150px;padding:5px 9px;border-radius:7px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mini-card{background:var(--surface-2);border:1px solid var(--border)}
+.mini-type{border:1.5px dashed var(--accent);background:var(--accent-soft)}
+.mini-card small,.mini-type small{font-size:.65rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.mini-type small{color:var(--accent)}
+.mini-type i{display:inline-block;width:1.5px;height:1em;margin-left:1px;vertical-align:-2px;background:var(--accent);animation:caret 1s steps(1) infinite}
+@keyframes caret{50%{opacity:0}}
+.tip-arrow{color:var(--muted)}
+@media (max-width:520px){.tip-row{row-gap:4px}.tip-k{width:100%}}
 .check input{width:18px;height:18px;accent-color:var(--accent)}
 
 .progress{height:6px;background:var(--surface-2);border-radius:99px;overflow:hidden}
@@ -625,6 +639,7 @@ function openSetup() {
   $('sideRow').hidden = !nC;
   document.querySelector(`input[name=side][value=${store.get('jsonquiz.side', 'auto')}]`).checked = true;
   sideNote();
+  sideTips();
   const w = $('warn');
   w.hidden = !quiz.warnings.length;
   if (quiz.warnings.length) w.innerHTML = `<b>${quiz.warnings.length} item(s) couldn't be read and were skipped:</b><ul>${quiz.warnings.slice(0, 8).map(x => `<li>${esc(x)}</li>`).join('')}</ul>`;
@@ -641,6 +656,24 @@ const SIDE_NOTES = {
   back: 'Study shows the back first. In games you see the back and type the front.'
 };
 function sideNote() { $('sideNote').textContent = SIDE_NOTES[side()]; }
+
+// hover card for each direction: a mini flashcard shows what you see, and what you flip to or type, using this quiz's first card
+function sideTips() {
+  const card = quiz.items.find(i => i.kind === 'card');
+  const cut = s => { s = plain(s); return s.length > 18 ? s.slice(0, 17) + '…' : s; };
+  const ex = { Front: card ? cut(card.front) : 'Term', Back: card ? cut(card.back) : 'Definition' };
+  const shown = (s, label = s) => `<span class="mini-card"><small>${label}</small>${esc(ex[s])}</span>`;
+  const typed = s => `<span class="mini-type"><small>You type the ${s.toLowerCase()}</small><span>${esc(ex[s])}<i></i></span></span>`;
+  const tip = (see, other, gameSee, gameType) => `<span class="side-tip" aria-hidden="true">
+    <span class="tip-row"><span class="tip-k">Study</span>${shown(see)}<span class="tip-arrow">flip →</span>${shown(other)}</span>
+    <span class="tip-row"><span class="tip-k">Games</span>${shown(gameSee)}<span class="tip-arrow">→</span>${typed(gameType)}</span>
+  </span>`;
+  const tips = { auto: tip('Front', 'Back', 'Back', 'Front'), front: tip('Front', 'Back', 'Front', 'Back'), back: tip('Back', 'Front', 'Back', 'Front') };
+  for (const label of $('sideSeg').querySelectorAll('label')) {
+    label.querySelector('.side-tip')?.remove();
+    label.insertAdjacentHTML('beforeend', tips[label.querySelector('input').value]);
+  }
+}
 $('sideSeg').addEventListener('change', () => { store.set('jsonquiz.side', side()); sideNote(); renderGameButtons(); });
 
 function start(items) {
