@@ -898,9 +898,8 @@ function renderGameButtons() {
   $('spellBtn').disabled = $('resSpell').hidden = $('gapsBtn').disabled = $('resGaps').hidden = !nS;
   $('spellBest').textContent = !nS ? noSpell : bs != null ? `Best: ${bs}%` : '';
   $('gapsBest').textContent = !nS ? noSpell : bg != null ? `Best: ${bg}%` : '';
-  const bf = store.get(bestKey('fuse'), null);
   $('fuseBtn').disabled = $('resFuse').hidden = !nS;
-  $('fuseBest').textContent = !nS ? noSpell : bf != null ? `Best: ${bf.toFixed(1)}s` : '';
+  $('fuseBest').textContent = !nS ? noSpell : '';
   $('resGames').hidden = !ok && !nS;
 }
 
@@ -1202,9 +1201,6 @@ const FUSE_FIELDS = [
   ['wrong', 'Wrong answer costs', 's', 0, 30, 0.5],
   ['skip', 'Skip costs', 's', 0, 30, 0.5]
 ];
-const fuseIsDefault = cfg => FUSE_FIELDS.every(([k]) => cfg[k] === FUSE_DEFAULTS[k]);
-// best times are kept per set of settings; the default one is what the game button shows
-const fuseBestKey = cfg => fuseIsDefault(cfg) ? bestKey('fuse') : bestKey('fuse:' + FUSE_FIELDS.map(([k]) => cfg[k]).join(','));
 
 function fuseSettings() {
   stopGame();
@@ -1327,14 +1323,13 @@ function fuseSkip() {
 }
 
 function endFuse() {
-  const lasted = (G.end - G.start) / 1000, key = fuseBestKey(G.cfg), best = store.get(key, null), custom = !fuseIsDefault(G.cfg);
-  const isBest = best == null || lasted > best;
-  if (isBest) store.set(key, lasted);
+  // no best time: the settings change the game too much for scores to compare
+  const lasted = (G.end - G.start) / 1000;
   const missed = [...G.missed.values()];
   gameEnd(`<div class="card game-end">
     <h2>💥 Boom!</h2>
     <div class="big">${lasted.toFixed(1)}s</div>
-    <p class="sub">lasted · ${G.spelled} word${G.spelled === 1 ? '' : 's'} spelled · ${G.mistakes} mistake${G.mistakes === 1 ? '' : 's'} · ${isBest ? 'New best 🎉' : `Best: ${best.toFixed(1)}s`}${custom ? ' with these settings' : ''}</p>
+    <p class="sub">lasted · ${G.spelled} word${G.spelled === 1 ? '' : 's'} spelled · ${G.mistakes} mistake${G.mistakes === 1 ? '' : 's'}</p>
     <div class="row"><button class="btn primary" data-again="fuse">Play again</button><button class="btn" data-fu="settings">Change settings</button><button class="btn" data-back>Back</button></div>
   </div>
   ${missed.length ? `<h2 class="section-title">To review</h2><ul class="missed">${missed.map(p => `<li><div>${fmt(p.ask)}</div><div class="ans">${esc(p.full)}</div></li>`).join('')}</ul>` : ''}`);
