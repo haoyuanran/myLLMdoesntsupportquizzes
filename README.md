@@ -13,7 +13,7 @@ The format is simple enough for Claude, ChatGPT or Gemini to write. See [QUIZ_FO
 |---|---|
 | **Windows app** | Double-click `dist\JsonQuiz.exe`. It opens in its own window. To open a quiz straight away, drag a `.json` file onto the exe, or right-click the file → *Open with* → JsonQuiz.exe. |
 | **Browser (offline)** | Double-click `index.html`. Everything runs locally, and no internet connection is needed. |
-| **On the web** | Upload `index.html` to any static host (GitHub Pages, Netlify, Cloudflare Pages…). To link a specific quiz, add `?quiz=<url-of-json>` to the address (the JSON host must allow cross-origin requests, e.g. a GitHub raw link). |
+| **On the web** | [https://haoyuanran.github.io/myLLMdoesntsupportquizzes/](https://haoyuanran.github.io/myLLMdoesntsupportquizzes/) |
 
 ## Making a quiz with an AI
 
@@ -28,6 +28,7 @@ The format is simple enough for Claude, ChatGPT or Gemini to write. See [QUIZ_FO
 - Shuffle questions and answers, or filter to only MCQs or only flashcards
 - Results screen showing what you missed, with a one-click **Retry the ones I missed**
 - Recent quizzes are remembered on this device
+- Flashcard games such as match, type out the word, and true or false
 - Keyboard shortcuts: `A`–`D` / `1`–`4` to answer, `Enter` / `→` for next, `Space` to flip
 - Light and dark themes
 
