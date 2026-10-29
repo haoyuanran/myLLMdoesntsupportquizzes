@@ -141,6 +141,40 @@ textarea:focus,input[type=text]:focus,input[type=number]:focus{outline:2px solid
 .missed .ans{color:var(--good);margin-top:4px}
 .missed .yours{color:var(--bad);font-size:.9rem}
 
+.games{margin-top:28px;padding-top:22px;border-top:1px solid var(--border)}
+.games h2{margin-bottom:2px}
+.game-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:14px}
+.game{display:grid;gap:4px;align-content:start;text-align:left;padding:16px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface);cursor:pointer;transition:border-color .12s,background .12s}
+.game:hover{border-color:var(--accent);background:var(--accent-soft)}
+.game b{font-size:1.05rem}
+.game span{color:var(--muted);font-size:.9rem}
+.game small{color:var(--accent);font-weight:600;font-size:.8rem}
+.game-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.game-head h2{flex:1}
+.game-stat{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:14px}
+.tile{min-height:92px;padding:12px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface);cursor:pointer;font-size:.92rem;line-height:1.35;display:flex;align-items:center;justify-content:center;text-align:center;transition:opacity .3s,transform .3s,border-color .12s,background .12s}
+.tile.a{font-weight:600}
+.tile.b{background:var(--surface-2)}
+.tile:hover:not(:disabled){border-color:var(--accent)}
+.tile.sel{border-color:var(--accent);background:var(--accent-soft)}
+.tile.done{opacity:0;transform:scale(.9);pointer-events:none}
+.tile.bad{animation:shake .35s;border-color:var(--bad)}
+@keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.game-end{text-align:center}
+.game-end .big{font-size:2.6rem;font-weight:700;margin:4px 0;font-variant-numeric:tabular-nums}
+.game-end .row{justify-content:center;margin-top:18px}
+.tf-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px 22px;text-align:center;margin:8px 0 14px;transition:border-color .15s,background .15s}
+.tf-card.ok{border-color:var(--good);background:var(--good-bg)}
+.tf-card.no{border-color:var(--bad);background:var(--bad-bg)}
+.tf-front{font-size:1.3rem;font-weight:600}
+.tf-eq{color:var(--muted);font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin:12px 0}
+.tf-back{font-size:1.05rem}
+.tf-fb{min-height:1.6em;text-align:center;margin-bottom:14px}
+.good-t{color:var(--good)}
+.bad-t{color:var(--bad)}
+.btn kbd{font-family:inherit;font-size:.72rem;border:1px solid currentColor;border-radius:4px;padding:0 4px;margin-left:8px;opacity:.6}
+
 dialog{border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);box-shadow:var(--shadow);max-width:720px;width:calc(100% - 32px);padding:0}
 dialog::backdrop{background:rgba(0,0,0,.45)}
 .dlg-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border)}
@@ -254,7 +288,25 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
         <button class="btn primary" id="startBtn">Start</button>
         <button class="btn" id="backBtn">Load a different quiz</button>
       </div>
+      <div class="games" id="games" hidden>
+        <h2>Flashcard games</h2>
+        <p class="sub" id="gamesNote"></p>
+        <div class="game-grid">
+          <button class="game" id="matchBtn"><b>🧩 Match</b><span>Pair each term with its definition as fast as you can.</span><small id="matchBest"></small></button>
+          <button class="game" id="tfBtn"><b>⚡ True or false</b><span>60 seconds: does this definition go with this term?</span><small id="tfBest"></small></button>
+        </div>
+      </div>
     </div>
+  </section>
+
+  <!-- GAMES -->
+  <section id="game" hidden>
+    <div class="game-head">
+      <button class="btn ghost" id="gameBack">← Back</button>
+      <h2 id="gameTitle"></h2>
+      <div class="game-stat" id="gameStat"></div>
+    </div>
+    <div id="gameStage"></div>
   </section>
 
   <!-- PLAY -->
@@ -300,7 +352,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 (() => {
 'use strict';
 const $ = id => document.getElementById(id);
-const screens = ['home', 'setup', 'play', 'results'];
+const screens = ['home', 'setup', 'play', 'results', 'game'];
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 const SAMPLE = {"title":"The Solar System","description":"A quick mixed quiz: multiple choice and flashcards.","questions":[{"type":"mcq","question":"Which planet is closest to the Sun?","options":["Venus","Mercury","Mars","Earth"],"answer":"Mercury","explanation":"Mercury orbits at about 0.39 AU, the closest of all eight planets."},{"type":"mcq","question":"Which planet has the most confirmed moons?","options":["Jupiter","Saturn","Uranus","Neptune"],"answer":"Saturn","hint":"It's famous for something else too.","explanation":"Saturn passed Jupiter in 2023 and now has well over 140 confirmed moons."},{"type":"mcq","question":"Which of these are **gas giants**? (select all that apply)","options":["Jupiter","Mars","Saturn","Venus"],"answer":["Jupiter","Saturn"],"explanation":"Jupiter and Saturn are gas giants; Uranus and Neptune are usually called ice giants."},{"type":"mcq","question":"Roughly how long does sunlight take to reach Earth?","options":["8 seconds","8 minutes","8 hours","8 days"],"answer":"8 minutes","explanation":"About 8 minutes 20 seconds at an average distance of 150 million km."},{"type":"mcq","question":"What is the largest planet in the Solar System?","options":["Earth","Neptune","Jupiter","Saturn"],"answer":"Jupiter"},{"type":"flashcard","front":"Astronomical Unit (AU)","back":"The average distance from Earth to the Sun, about 150 million km."},{"type":"flashcard","front":"Kuiper Belt","back":"A region of icy bodies beyond Neptune's orbit. Pluto lives here.","hint":"Think: past the outermost planet."},{"type":"flashcard","front":"Why is Venus hotter than Mercury?","back":"Its thick CO₂ atmosphere traps heat (a runaway greenhouse effect), even though it is farther from the Sun."}]};
@@ -444,6 +496,7 @@ let quiz = null, quizText = '';
 let S = null; // play session
 
 function show(name) {
+  if (name !== 'game') stopGame();
   for (const s of screens) $(s).hidden = s !== name;
   window.scrollTo(0, 0);
 }
@@ -496,6 +549,12 @@ function openSetup() {
   const w = $('warn');
   w.hidden = !quiz.warnings.length;
   if (quiz.warnings.length) w.innerHTML = `<b>${quiz.warnings.length} item(s) couldn't be read and were skipped:</b><ul>${quiz.warnings.slice(0, 8).map(x => `<li>${esc(x)}</li>`).join('')}</ul>`;
+  const pairs = gamePairs();
+  $('games').hidden = pairs.length < 2;
+  $('gamesNote').textContent = nC >= 2 ? `Play with your ${nC} flashcards.` : 'This quiz has no flashcards, so the games use your questions and their answers.';
+  const bm = store.get(bestKey('match'), null), bt = store.get(bestKey('tf'), null);
+  $('matchBest').textContent = bm != null ? `Best: ${bm.toFixed(1)}s` : '';
+  $('tfBest').textContent = bt != null ? `Best: ${bt} points` : '';
   show('setup');
   $('startBtn').focus();
 }
@@ -690,6 +749,160 @@ function results() {
 $('retryMissed').onclick = () => start(S.missed);
 $('restartBtn').onclick = () => start(S.all);
 $('newBtn').onclick = () => show('home');
+
+/* ---------- games ---------- */
+const G = { kind: null, timer: null };
+const bestKey = game => `jsonquiz.best.${game}:${quiz.title}`;
+
+// term/definition pairs; falls back to single-answer MCQs when there are too few flashcards
+function gamePairs() {
+  const cards = quiz.items.filter(i => i.kind === 'card').map(i => ({ a: i.front, b: i.back }));
+  if (cards.length >= 2) return cards;
+  return cards.concat(quiz.items.filter(i => i.kind === 'mcq' && i.correct.length === 1)
+    .map(i => ({ a: i.question, b: i.options[i.correct[0]] })));
+}
+
+function stopGame() { clearInterval(G.timer); G.timer = null; G.kind = null; }
+
+function gameEnd(html) {
+  clearInterval(G.timer);
+  G.kind = 'done';
+  $('gameStat').textContent = '';
+  $('gameStage').innerHTML = html;
+}
+
+// Match: rounds of up to 6 pairs (7 if that avoids a lonely 1-pair round); wrong pairs add 1s
+function startMatch() {
+  stopGame();
+  const pairs = shuffle(gamePairs()), n = pairs.length;
+  Object.assign(G, { kind: 'match', queue: pairs, round: 0, rounds: n % 6 === 1 ? Math.max(1, Math.floor(n / 6)) : Math.ceil(n / 6),
+    start: performance.now(), penalty: 0, mistakes: 0, sel: null });
+  $('gameTitle').textContent = '🧩 Match';
+  show('game');
+  nextMatchRound();
+  G.timer = setInterval(() => { $('gameStat').textContent = matchTime().toFixed(1) + 's'; }, 100);
+}
+const matchTime = () => (performance.now() - G.start) / 1000 + G.penalty;
+
+function nextMatchRound() {
+  const pairs = G.queue.splice(0, G.queue.length === 7 ? 7 : 6);
+  G.round++; G.left = pairs.length; G.sel = null;
+  const tiles = shuffle(pairs.flatMap((p, i) => [{ id: i, side: 'a', text: p.a }, { id: i, side: 'b', text: p.b }]));
+  $('gameStage').innerHTML = `<p class="sub">Round ${G.round} of ${G.rounds} · Click a term, then the definition that goes with it.</p>
+    <div class="tiles">${tiles.map(t => `<button class="tile ${t.side}" data-id="${t.id}" data-side="${t.side}">${fmt(t.text)}</button>`).join('')}</div>`;
+}
+
+function matchClick(t) {
+  if (G.sel === t) { t.classList.remove('sel'); G.sel = null; return; }
+  if (!G.sel || G.sel.dataset.side === t.dataset.side) {
+    if (G.sel) G.sel.classList.remove('sel');
+    G.sel = t; t.classList.add('sel');
+    return;
+  }
+  const a = G.sel;
+  G.sel = null; a.classList.remove('sel');
+  if (a.dataset.id === t.dataset.id) {
+    for (const x of [a, t]) { x.classList.add('done'); x.disabled = true; }
+    if (--G.left === 0) setTimeout(() => { if (G.kind === 'match') G.queue.length ? nextMatchRound() : endMatch(); }, 350);
+  } else {
+    G.mistakes++; G.penalty += 1;
+    for (const x of [a, t]) { x.classList.remove('bad'); void x.offsetWidth; x.classList.add('bad'); }
+  }
+}
+
+function endMatch() {
+  const t = matchTime(), key = bestKey('match'), best = store.get(key, null);
+  const isBest = best == null || t < best;
+  if (isBest) store.set(key, t);
+  gameEnd(`<div class="card game-end">
+    <h2>All matched!</h2>
+    <div class="big">${t.toFixed(1)}s</div>
+    <p class="sub">${G.mistakes} mistake${G.mistakes === 1 ? '' : 's'} (+1s each) · ${isBest ? 'New best time 🎉' : `Best: ${best.toFixed(1)}s`}</p>
+    <div class="row"><button class="btn primary" data-again="match">Play again</button><button class="btn" data-back>Back</button></div>
+  </div>`);
+}
+
+// True or false: 60s, a term is shown with its real definition or a random other one
+function startTF() {
+  stopGame();
+  Object.assign(G, { kind: 'tf', pairs: gamePairs(), end: performance.now() + 60000, score: 0, total: 0, streak: 0, longest: 0, missed: new Map(), lock: false });
+  $('gameTitle').textContent = '⚡ True or false';
+  show('game');
+  nextTF();
+  tickTF();
+  G.timer = setInterval(tickTF, 100);
+}
+
+function tickTF() {
+  const left = Math.max(0, (G.end - performance.now()) / 1000);
+  $('gameStat').textContent = `⏱ ${Math.ceil(left)}s · ${G.score} pts`;
+  if (left <= 0) endTF();
+}
+
+function nextTF() {
+  const p = G.pairs[Math.floor(Math.random() * G.pairs.length)];
+  const others = G.pairs.filter(x => x.b !== p.b);
+  const truth = !others.length || Math.random() < 0.5;
+  const shown = truth ? p.b : others[Math.floor(Math.random() * others.length)].b;
+  G.cur = { p, shown, truth };
+  G.lock = false;
+  $('gameStage').innerHTML = `
+    <div class="tf-card" id="tfCard"><div class="tf-front">${fmt(p.a)}</div><div class="tf-eq">goes with</div><div class="tf-back">${fmt(shown)}</div></div>
+    <div class="tf-fb" id="tfFb"></div>
+    <div class="actions grade">
+      <button class="btn bad" data-tf="0">✗ False<kbd>F</kbd></button>
+      <button class="btn good" data-tf="1">✓ True<kbd>T</kbd></button>
+    </div>
+    <p class="kbd">Streak: ${G.streak} · also <kbd>←</kbd> false, <kbd>→</kbd> true</p>`;
+}
+
+function tfAnswer(v) {
+  if (G.kind !== 'tf' || G.lock) return;
+  G.lock = true;
+  const ok = v === G.cur.truth;
+  G.total++;
+  if (ok) { G.score++; G.streak++; G.longest = Math.max(G.longest, G.streak); }
+  else { G.streak = 0; G.missed.set(G.cur.p.a, G.cur.p); }
+  $('tfCard').classList.add(ok ? 'ok' : 'no');
+  $('tfFb').innerHTML = ok ? '<strong class="good-t">Correct!</strong>'
+    : `<strong class="bad-t">Wrong.</strong> ${G.cur.truth ? 'They do go together.' : 'It actually goes with: ' + fmt(G.cur.p.b)}`;
+  setTimeout(() => { if (G.kind === 'tf') nextTF(); }, ok ? 350 : 1500);
+}
+
+function endTF() {
+  const key = bestKey('tf'), best = store.get(key, null);
+  const isBest = G.score > 0 && (best == null || G.score > best);
+  if (isBest) store.set(key, G.score);
+  const acc = G.total ? Math.round(G.score / G.total * 100) : 0;
+  const missed = [...G.missed.values()];
+  gameEnd(`<div class="card game-end">
+    <h2>Time's up!</h2>
+    <div class="big">${G.score} pts</div>
+    <p class="sub">${acc}% accurate · longest streak ${G.longest} · ${isBest ? 'New best score 🎉' : best != null ? `Best: ${best}` : ''}</p>
+    <div class="row"><button class="btn primary" data-again="tf">Play again</button><button class="btn" data-back>Back</button></div>
+  </div>
+  ${missed.length ? `<h2 class="section-title">To review</h2><ul class="missed">${missed.map(p => `<li><div>${fmt(p.a)}</div><div class="ans">${fmt(p.b)}</div></li>`).join('')}</ul>` : ''}`);
+}
+
+$('gameStage').addEventListener('click', e => {
+  const t = e.target;
+  const tile = t.closest('.tile');
+  if (tile && G.kind === 'match' && !tile.disabled) return matchClick(tile);
+  const tf = t.closest('[data-tf]');
+  if (tf) return tfAnswer(tf.dataset.tf === '1');
+  const again = t.closest('[data-again]');
+  if (again) return again.dataset.again === 'match' ? startMatch() : startTF();
+  if (t.closest('[data-back]')) openSetup();
+});
+$('gameBack').onclick = () => openSetup();
+$('matchBtn').onclick = startMatch;
+$('tfBtn').onclick = startTF;
+document.addEventListener('keydown', e => {
+  if (G.kind !== 'tf' || e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key.toLowerCase();
+  if (k === 't' || k === 'arrowright') { e.preventDefault(); tfAnswer(true); }
+  else if (k === 'f' || k === 'arrowleft') { e.preventDefault(); tfAnswer(false); }
+});
 
 /* ---------- home wiring ---------- */
 $('fileInput').addEventListener('change', e => { const f = e.target.files[0]; if (f) readFile(f); e.target.value = ''; });
