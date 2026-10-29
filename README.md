@@ -28,7 +28,7 @@ The format is simple enough for Claude, ChatGPT or Gemini to write. See [QUIZ_FO
 - Shuffle questions and answers, or filter to only MCQs or only flashcards
 - Results screen showing what you missed, with a one-click **Retry the ones I missed**
 - Recent quizzes are remembered on this device
-- Flashcard games such as match, type out the word, and true or false
+- Flashcard games such as match, type out the word, true or false, and a fuse spelling race against the clock
 - Keyboard shortcuts: `A`–`D` / `1`–`4` to answer, `Enter` / `→` for next, `Space` to flip
 - Light and dark themes
 

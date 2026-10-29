@@ -4,24 +4,26 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>myLLMdoesntsupportquizzes</title>
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
 :root{
   --bg:#f6f5f2;--surface:#ffffff;--surface-2:#efede8;--text:#1d1c1a;--muted:#6b675f;--border:#dedad2;
-  --accent:#3b5bdb;--accent-ink:#ffffff;--accent-soft:#e7ecff;
+  --accent:#8100ff;--accent-ink:#ffffff;--accent-soft:#f0e6ff;
   --good:#2b8a3e;--good-bg:#e6f4ea;--bad:#c92a2a;--bad-bg:#fdeaea;--warn-bg:#fff6dc;--warn:#8a6100;
   --shadow:0 1px 2px rgba(0,0,0,.05),0 8px 24px rgba(0,0,0,.06);--radius:14px;color-scheme:light;
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
     --bg:#141518;--surface:#1d1f24;--surface-2:#272a31;--text:#ecebe8;--muted:#9c9a92;--border:#353840;
-    --accent:#7b93ff;--accent-ink:#0d0f14;--accent-soft:#232b4a;
+    --accent:#9600ff;--accent-ink:#ffffff;--accent-soft:#2a1a47;
     --good:#63d47f;--good-bg:#16301f;--bad:#ff8787;--bad-bg:#3a1c1c;--warn-bg:#3a2f12;--warn:#ffd36b;
     --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:#141518;--surface:#1d1f24;--surface-2:#272a31;--text:#ecebe8;--muted:#9c9a92;--border:#353840;
-  --accent:#7b93ff;--accent-ink:#0d0f14;--accent-soft:#232b4a;
+  --accent:#9600ff;--accent-ink:#ffffff;--accent-soft:#2a1a47;
   --good:#63d47f;--good-bg:#16301f;--bad:#ff8787;--bad-bg:#3a1c1c;--warn-bg:#3a2f12;--warn:#ffd36b;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);color-scheme:dark;
 }
@@ -39,6 +41,7 @@ pre code{background:none;padding:0}
 .top-actions{display:flex;gap:4px}
 .top .btn,.brand{white-space:nowrap}
 .brand{min-width:0;overflow:hidden;text-overflow:ellipsis;display:block}
+.brand-icon{width:22px;height:22px;vertical-align:middle;margin:-3px 8px 0 0;border-radius:5px}
 .icon-link{display:inline-grid;place-items:center;padding:9px 11px;color:inherit;text-decoration:none}
 main{max-width:760px;margin:0 auto;padding:32px 16px 64px}
 h1{font-size:1.9rem;line-height:1.2;margin:0 0 8px}
@@ -182,6 +185,19 @@ textarea:focus,input[type=text]:focus,input[type=number]:focus{outline:2px solid
 .spell-in.bad{animation:shake .35s;border-color:var(--bad)}
 .spell-in.ok{border-color:var(--good);background:var(--good-bg)}
 .spell-acts{justify-content:center}
+.fuse{display:flex;align-items:center;gap:12px;margin:4px 0 16px;position:relative}
+.fuse-bomb{font-size:1.9rem;line-height:1}
+.fuse.low .fuse-bomb{animation:shake .35s infinite}
+.fuse-track{flex:1;height:10px;border-radius:5px;background:var(--surface-2)}
+.fuse-rope{height:100%;max-width:100%;border-radius:5px;background:repeating-linear-gradient(-45deg,#b5895a 0 6px,#8f6a42 6px 12px);position:relative}
+.fuse.low .fuse-rope{background:repeating-linear-gradient(-45deg,var(--bad) 0 6px,#8f1d1d 6px 12px)}
+.fuse-spark{position:absolute;right:-10px;top:50%;width:20px;height:20px;margin-top:-10px;border-radius:50%;background:radial-gradient(circle,#fff6b0 0 18%,#ffb703 38%,rgba(255,90,0,.6) 58%,transparent 72%);animation:spark .18s infinite alternate}
+@keyframes spark{to{transform:scale(1.35) rotate(40deg);opacity:.75}}
+.fuse-left{font-variant-numeric:tabular-nums;font-weight:700;min-width:3.4em;text-align:right}
+.fuse.low .fuse-left{color:var(--bad)}
+.fuse-delta{position:absolute;right:0;top:-1.3em;font-weight:700;opacity:0;pointer-events:none}
+.fuse-delta.show{animation:delta .9s ease-out}
+@keyframes delta{0%{opacity:1;transform:translateY(6px)}100%{opacity:0;transform:translateY(-10px)}}
 .blanks.gaps{font-size:1.35rem;margin-bottom:20px}
 .blanks.gaps .ch{width:auto;min-width:.8em;border-color:transparent}
 .gap{width:1.3em;padding:0;border:0;border-bottom:2px solid var(--accent);border-radius:4px 4px 0 0;background:var(--accent-soft);color:var(--text);font:inherit;text-align:center;caret-color:var(--accent)}
@@ -198,6 +214,8 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .dlg-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border)}
 .dlg-body{padding:16px 20px 20px;max-height:70vh;overflow:auto}
 .dlg-body p{margin:0 0 12px;color:var(--muted)}
+.ios-steps{margin:0;padding-left:22px;display:grid;gap:10px}
+.ios-steps svg{vertical-align:-3px;color:var(--accent)}
 .fields{display:grid;grid-template-columns:1fr 130px 130px;gap:10px;margin-bottom:12px}
 .fields label{display:grid;gap:4px;font-size:.85rem;color:var(--muted)}
 .fields input,.fields select{border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:var(--surface);color:var(--text)}
@@ -226,9 +244,10 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 </head>
 <body>
 <header class="top">
-  <button class="brand" id="homeBtn" title="Home">myLLMdoesntsupportquizzes</button>
+  <button class="brand" id="homeBtn" title="Home"><img class="brand-icon" src="icon.png" alt="" onerror="this.remove()">myLLMdoesntsupportquizzes</button>
   <div class="top-actions">
     <a class="btn ghost icon-link" id="repoLink" href="https://github.com/haoyuanran/myLLMdoesntsupportquizzes" target="_blank" rel="noopener" title="View the source on GitHub" aria-label="View the source on GitHub"><svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+    <button class="btn ghost icon-link" id="iosBtn" hidden title="Add to Home Screen" aria-label="How to add this app to your Home Screen"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8.5v7M8.5 12h7"/></svg></button>
     <button class="btn ghost" id="themeBtn" title="Toggle light/dark" aria-label="Toggle light or dark theme">◐</button>
   </div>
 </header>
@@ -312,6 +331,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
           <button class="game" id="tfBtn"><b>⚡ True or false</b><span>60 seconds: does this definition go with this term?</span><small id="tfBest"></small></button>
           <button class="game" id="spellBtn"><b>✏️ Spell it</b><span>Read the definition and type the word, letter by letter.</span><small id="spellBest"></small></button>
           <button class="game" id="gapsBtn"><b>🔤 Missing letters</b><span>Some letters are gone. Fill in the gaps, accents included.</span><small id="gapsBest"></small></button>
+          <button class="game" id="fuseBtn"><b>🧨 Fuse</b><span>Spell before the fuse burns out. Right answers add time, mistakes cost it.</span><small id="fuseBest"></small></button>
         </div>
       </div>
     </div>
@@ -354,6 +374,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
         <button class="btn" id="resTf">⚡ True or false</button>
         <button class="btn" id="resSpell">✏️ Spell it</button>
         <button class="btn" id="resGaps">🔤 Missing letters</button>
+        <button class="btn" id="resFuse">🧨 Fuse</button>
       </div>
     </div>
     <div id="missedWrap">
@@ -362,6 +383,18 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     </div>
   </section>
 </main>
+
+<dialog id="iosDialog">
+  <div class="dlg-head"><h2>Add to your Home Screen</h2><button class="btn ghost" id="closeIos" aria-label="Close">✕</button></div>
+  <div class="dlg-body">
+    <p>Open the quizzes like an app, straight from your iPhone's Home Screen.</p>
+    <ol class="ios-steps">
+      <li>In Safari, tap the <b>Share</b> button <svg viewBox="0 0 24 24" width="18" height="18" aria-label="Share icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 7l4-4 4 4M7 11H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1"/></svg>. On iOS 26, tap <b>⋯</b> first.</li>
+      <li>Scroll down and tap <b>Add to Home Screen</b>.</li>
+      <li>Tap <b>Add</b>.</li>
+    </ol>
+  </div>
+</dialog>
 
 <dialog id="promptDialog">
   <div class="dlg-head"><h2>The prompt</h2><button class="btn ghost" id="closeDlg" aria-label="Close">✕</button></div>
@@ -796,6 +829,9 @@ function renderGameButtons() {
   $('spellBtn').disabled = $('resSpell').hidden = $('gapsBtn').disabled = $('resGaps').hidden = !nS;
   $('spellBest').textContent = !nS ? 'No short answers to spell in this quiz.' : bs != null ? `Best: ${bs}%` : '';
   $('gapsBest').textContent = !nS ? 'No short answers to spell in this quiz.' : bg != null ? `Best: ${bg}%` : '';
+  const bf = store.get(bestKey('fuse'), null);
+  $('fuseBtn').disabled = $('resFuse').hidden = !nS;
+  $('fuseBest').textContent = !nS ? 'No short answers to spell in this quiz.' : bf != null ? `Best: ${bf.toFixed(1)}s` : '';
   $('resGames').hidden = !ok && !nS;
 }
 
@@ -1083,7 +1119,118 @@ function endSpell() {
   ${G.missed.length ? `<h2 class="section-title">To review</h2><ul class="missed">${G.missed.map(p => `<li><div>${fmt(p.ask)}</div><div class="ans">${esc(p.full)}</div></li>`).join('')}</ul>` : ''}`);
 }
 
+// Fuse: spell against a burning fuse. Right answers add time (more for longer words, 5% less with each word),
+// wrong answers and skips burn it. The score is how long you lasted.
+const FUSE = { start: 20, max: 30, wrong: 3, skip: 5 };
+function startFuse() {
+  stopGame();
+  const now = performance.now();
+  Object.assign(G, { kind: 'fuse', pairs: spellPairs(), queue: [], start: now, end: now + FUSE.start * 1000, spelled: 0, mistakes: 0, missed: new Map(), cur: null });
+  $('gameTitle').textContent = '🧨 Fuse';
+  show('game');
+  $('gameStage').innerHTML = `
+    <div class="fuse" id="fuse"><span class="fuse-bomb">💣</span><div class="fuse-track"><div class="fuse-rope" id="fuRope"><span class="fuse-spark"></span></div></div><span class="fuse-left" id="fuLeft"></span><span class="fuse-delta" id="fuDelta"></span></div>
+    <div class="tf-card" id="spCard"><div class="tf-back" id="fuAsk"></div></div>
+    <div class="blanks" id="spBlanks"></div>
+    <input class="spell-in" id="spIn" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Type the answer">
+    <div class="tf-fb" id="spFb"></div>
+    <div class="row spell-acts"><button class="btn" data-fu="skip">Skip (−${FUSE.skip}s)<kbd>Esc</kbd></button></div>
+    <p class="kbd"><kbd>Enter</kbd> check · right answers add time, longer words add more · wrong answers −${FUSE.wrong}s · accents count</p>`;
+  nextFuse();
+  tickFuse();
+  G.timer = setInterval(tickFuse, 50);
+  $('spIn').focus();
+}
+
+function nextFuse() {
+  if (!G.queue.length) {
+    G.queue = shuffle(G.pairs);
+    // don't repeat the last word straight after a reshuffle
+    if (G.cur && G.queue.length > 1 && G.queue[0] === G.cur.p) G.queue.push(G.queue.shift());
+  }
+  const p = G.queue.shift();
+  G.cur = { ...p, p, chars: [...p.word.normalize('NFC')], hide: null, shown: 0, solved: false };
+  $('fuAsk').innerHTML = fmt(p.ask);
+  renderBlanks();
+  const inp = $('spIn');
+  inp.value = ''; inp.classList.remove('bad');
+}
+
+function tickFuse() {
+  if (G.kind !== 'fuse') return;
+  const now = performance.now(), left = Math.max(0, (G.end - now) / 1000);
+  $('fuRope').style.width = left / FUSE.max * 100 + '%';
+  $('fuLeft').textContent = left.toFixed(1) + 's';
+  $('fuse').classList.toggle('low', left < 5);
+  $('gameStat').textContent = `⏱ ${((Math.min(now, G.end) - G.start) / 1000).toFixed(1)}s · ${G.spelled} spelled`;
+  if (left <= 0) endFuse();
+}
+
+function fuseDelta(sec) {
+  const was = G.end;
+  G.end = Math.min(G.end + sec * 1000, performance.now() + FUSE.max * 1000);
+  // show what actually changed: a bonus at a full fuse is cut short
+  const got = (G.end - was) / 1000, d = $('fuDelta');
+  d.textContent = sec > 0 && got < 0.05 ? 'Full!' : `${got > 0 ? '+' : '−'}${Math.abs(got).toFixed(1)}s`;
+  d.className = 'fuse-delta ' + (sec > 0 ? 'good-t' : 'bad-t');
+  void d.offsetWidth; d.classList.add('show');
+}
+
+function fuseCheck() {
+  const c = G.cur, inp = $('spIn'), got = norm(inp.value), want = norm(c.word);
+  if (!got) return;
+  if (got === want || got === norm(c.full)) {
+    G.spelled++;
+    fuseDelta(Math.max(1, (2 + c.chars.filter(isLetter).length * 0.3) * 0.95 ** (G.spelled - 1)));
+    $('spFb').innerHTML = `<strong class="good-t">✓ ${esc(c.full)}</strong>`;
+    const card = $('spCard');
+    card.classList.add('ok');
+    setTimeout(() => card.classList.remove('ok'), 300);
+    nextFuse();
+  } else {
+    G.mistakes++;
+    G.missed.set(c.full, c);
+    fuseDelta(-FUSE.wrong);
+    const accent = noAccents(got) === noAccents(want) || noAccents(got) === noAccents(norm(c.full));
+    const close = editDist(got, want) <= Math.max(1, Math.floor(want.length / 6));
+    $('spFb').innerHTML = accent ? '<strong class="bad-t">Almost!</strong> Check the accents.'
+      : close ? '<strong class="bad-t">So close!</strong> Check your spelling.' : '<strong class="bad-t">Not quite.</strong> Try again, or skip.';
+    inp.classList.remove('bad'); void inp.offsetWidth; inp.classList.add('bad');
+    inp.select();
+  }
+  tickFuse();
+}
+
+function fuseSkip() {
+  const c = G.cur;
+  G.missed.set(c.full, c);
+  fuseDelta(-FUSE.skip);
+  $('spFb').innerHTML = `Skipped. It was <strong>${esc(c.full)}</strong>.`;
+  nextFuse();
+  $('spIn').focus();
+  tickFuse();
+}
+
+function endFuse() {
+  const lasted = (G.end - G.start) / 1000, key = bestKey('fuse'), best = store.get(key, null);
+  const isBest = best == null || lasted > best;
+  if (isBest) store.set(key, lasted);
+  const missed = [...G.missed.values()];
+  gameEnd(`<div class="card game-end">
+    <h2>💥 Boom!</h2>
+    <div class="big">${lasted.toFixed(1)}s</div>
+    <p class="sub">lasted · ${G.spelled} word${G.spelled === 1 ? '' : 's'} spelled · ${G.mistakes} mistake${G.mistakes === 1 ? '' : 's'} · ${isBest ? 'New best 🎉' : `Best: ${best.toFixed(1)}s`}</p>
+    <div class="row"><button class="btn primary" data-again="fuse">Play again</button><button class="btn" data-back>Back</button></div>
+  </div>
+  ${missed.length ? `<h2 class="section-title">To review</h2><ul class="missed">${missed.map(p => `<li><div>${fmt(p.ask)}</div><div class="ans">${esc(p.full)}</div></li>`).join('')}</ul>` : ''}`);
+}
+
 $('gameStage').addEventListener('keydown', e => {
+  if (G.kind === 'fuse') {
+    if (e.key === 'Enter' && e.target.id === 'spIn') { e.preventDefault(); fuseCheck(); }
+    else if (e.key === 'Escape') { e.preventDefault(); fuseSkip(); }
+    return;
+  }
   if (G.kind !== 'spell' || !G.cur) return;
   const t = e.target, isGap = t.classList.contains('gap');
   if (e.key === 'Enter' && (isGap || t.id === 'spIn')) { e.preventDefault(); return spellAction(G.cur.solved ? 'next' : 'check'); }
@@ -1114,8 +1261,9 @@ $('gameStage').addEventListener('click', e => {
   if (tf) return tfAnswer(tf.dataset.tf === '1');
   const sp = t.closest('[data-sp]');
   if (sp) return spellAction(sp.dataset.sp);
+  if (t.closest('[data-fu]') && G.kind === 'fuse') return fuseSkip();
   const again = t.closest('[data-again]');
-  if (again) return ({ match: startMatch, tf: startTF, spell: () => startSpell('spell'), gaps: () => startSpell('gaps') })[again.dataset.again]();
+  if (again) return ({ match: startMatch, tf: startTF, spell: () => startSpell('spell'), gaps: () => startSpell('gaps'), fuse: startFuse })[again.dataset.again]();
   if (t.closest('[data-back]')) openSetup();
 });
 $('gameBack').onclick = () => openSetup();
@@ -1123,6 +1271,7 @@ $('matchBtn').onclick = $('resMatch').onclick = startMatch;
 $('tfBtn').onclick = $('resTf').onclick = startTF;
 $('spellBtn').onclick = $('resSpell').onclick = () => startSpell('spell');
 $('gapsBtn').onclick = $('resGaps').onclick = () => startSpell('gaps');
+$('fuseBtn').onclick = $('resFuse').onclick = startFuse;
 document.addEventListener('keydown', e => {
   if (G.kind !== 'tf' || e.ctrlKey || e.metaKey || e.altKey) return;
   const k = e.key.toLowerCase();
@@ -1191,6 +1340,12 @@ $('previewPrompt').onclick = () => { updatePrompt(); $('dlgCopied').hidden = tru
 $('dlgCopy').onclick = async () => { await copyText(buildPrompt()); $('dlgCopied').hidden = false; };
 $('closeDlg').onclick = () => $('promptDialog').close();
 $('promptDialog').addEventListener('click', e => { if (e.target === $('promptDialog')) $('promptDialog').close(); });
+
+/* ---------- iPhone: how to add to the Home Screen (hidden once it's opened from there) ---------- */
+$('iosBtn').hidden = !/iPhone|iPod/.test(navigator.userAgent) || navigator.standalone;
+$('iosBtn').onclick = () => $('iosDialog').showModal();
+$('closeIos').onclick = () => $('iosDialog').close();
+$('iosDialog').addEventListener('click', e => { if (e.target === $('iosDialog')) $('iosDialog').close(); });
 async function copyText(text) {
   try { await navigator.clipboard.writeText(text); }
   catch {
