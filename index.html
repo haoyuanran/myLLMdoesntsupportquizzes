@@ -145,7 +145,9 @@ textarea:focus,input[type=text]:focus,input[type=number]:focus{outline:2px solid
 .games h2{margin-bottom:2px}
 .game-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:14px}
 .game{display:grid;gap:4px;align-content:start;text-align:left;padding:16px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface);cursor:pointer;transition:border-color .12s,background .12s}
-.game:hover{border-color:var(--accent);background:var(--accent-soft)}
+.game:hover:not(:disabled){border-color:var(--accent);background:var(--accent-soft)}
+.game:disabled{opacity:.5;cursor:default}
+.res-games{margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}
 .game b{font-size:1.05rem}
 .game span{color:var(--muted);font-size:.9rem}
 .game small{color:var(--accent);font-weight:600;font-size:.8rem}
@@ -288,7 +290,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
         <button class="btn primary" id="startBtn">Start</button>
         <button class="btn" id="backBtn">Load a different quiz</button>
       </div>
-      <div class="games" id="games" hidden>
+      <div class="games" id="games">
         <h2>Flashcard games</h2>
         <p class="sub" id="gamesNote"></p>
         <div class="game-grid">
@@ -329,6 +331,11 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
         <button class="btn primary" id="retryMissed">Retry the ones I missed</button>
         <button class="btn" id="restartBtn">Start over</button>
         <button class="btn" id="newBtn">New quiz</button>
+      </div>
+      <div class="row res-games" id="resGames">
+        <span class="sub">Or play a game:</span>
+        <button class="btn" id="resMatch">🧩 Match</button>
+        <button class="btn" id="resTf">⚡ True or false</button>
       </div>
     </div>
     <div id="missedWrap">
@@ -549,12 +556,7 @@ function openSetup() {
   const w = $('warn');
   w.hidden = !quiz.warnings.length;
   if (quiz.warnings.length) w.innerHTML = `<b>${quiz.warnings.length} item(s) couldn't be read and were skipped:</b><ul>${quiz.warnings.slice(0, 8).map(x => `<li>${esc(x)}</li>`).join('')}</ul>`;
-  const pairs = gamePairs();
-  $('games').hidden = pairs.length < 2;
-  $('gamesNote').textContent = nC >= 2 ? `Play with your ${nC} flashcards.` : 'This quiz has no flashcards, so the games use your questions and their answers.';
-  const bm = store.get(bestKey('match'), null), bt = store.get(bestKey('tf'), null);
-  $('matchBest').textContent = bm != null ? `Best: ${bm.toFixed(1)}s` : '';
-  $('tfBest').textContent = bt != null ? `Best: ${bt} points` : '';
+  renderGameButtons();
   show('setup');
   $('startBtn').focus();
 }
@@ -758,8 +760,20 @@ const bestKey = game => `jsonquiz.best.${game}:${quiz.title}`;
 function gamePairs() {
   const cards = quiz.items.filter(i => i.kind === 'card').map(i => ({ a: i.front, b: i.back }));
   if (cards.length >= 2) return cards;
-  return cards.concat(quiz.items.filter(i => i.kind === 'mcq' && i.correct.length === 1)
-    .map(i => ({ a: i.question, b: i.options[i.correct[0]] })));
+  return cards.concat(quiz.items.filter(i => i.kind === 'mcq')
+    .map(i => ({ a: i.question, b: i.correct.map(k => i.options[k]).join(', ') })));
+}
+
+function renderGameButtons() {
+  const n = gamePairs().length, ok = n >= 2;
+  const nC = quiz.items.filter(i => i.kind === 'card').length;
+  $('matchBtn').disabled = $('tfBtn').disabled = !ok;
+  $('gamesNote').textContent = !ok ? 'The games need at least 2 flashcards or questions. This quiz only has 1.'
+    : nC >= 2 ? `Play with your ${nC} flashcards.` : 'This quiz has no flashcards, so the games use your questions and their answers.';
+  const bm = store.get(bestKey('match'), null), bt = store.get(bestKey('tf'), null);
+  $('matchBest').textContent = bm != null ? `Best: ${bm.toFixed(1)}s` : '';
+  $('tfBest').textContent = bt != null ? `Best: ${bt} points` : '';
+  $('resGames').hidden = !ok;
 }
 
 function stopGame() { clearInterval(G.timer); G.timer = null; G.kind = null; }
@@ -895,8 +909,8 @@ $('gameStage').addEventListener('click', e => {
   if (t.closest('[data-back]')) openSetup();
 });
 $('gameBack').onclick = () => openSetup();
-$('matchBtn').onclick = startMatch;
-$('tfBtn').onclick = startTF;
+$('matchBtn').onclick = $('resMatch').onclick = startMatch;
+$('tfBtn').onclick = $('resTf').onclick = startTF;
 document.addEventListener('keydown', e => {
   if (G.kind !== 'tf' || e.ctrlKey || e.metaKey || e.altKey) return;
   const k = e.key.toLowerCase();
