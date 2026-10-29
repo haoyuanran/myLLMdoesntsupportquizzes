@@ -68,7 +68,7 @@ won't stop the rest of the quiz from loading.
 ## Prompt to give an AI
 
 The **Make a quiz with AI** card on the app's home screen builds this for you, with your topic
-and your MCQ/flashcard split (set with the slider) filled in. Here it is for copying by hand:
+and how many multiple-choice questions and flashcards you want filled in. Here it is for copying by hand:
 
 ```text
 Create a quiz about: [YOUR TOPIC HERE]

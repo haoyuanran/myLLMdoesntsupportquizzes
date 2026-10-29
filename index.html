@@ -198,9 +198,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .dlg-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border)}
 .dlg-body{padding:16px 20px 20px;max-height:70vh;overflow:auto}
 .dlg-body p{margin:0 0 12px;color:var(--muted)}
-.fields{display:grid;grid-template-columns:1fr 110px 200px;gap:10px;margin-bottom:12px}
-.fields input[type=range]{padding:0;border:0;accent-color:var(--accent);height:24px;margin-top:6px}
-.split-out{font-size:.85rem;color:var(--text);white-space:nowrap}
+.fields{display:grid;grid-template-columns:1fr 130px 130px;gap:10px;margin-bottom:12px}
 .fields label{display:grid;gap:4px;font-size:.85rem;color:var(--muted)}
 .fields input,.fields select{border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:var(--surface);color:var(--text)}
 #promptText{white-space:pre-wrap;font-size:.8rem;max-height:340px;margin:0 0 12px}
@@ -246,8 +244,8 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       <p class="sub">Choose a topic and a chatbot. The prompt is copied for you and the chatbot opens beside this window.</p>
       <div class="fields">
         <label>Topic<input type="text" id="pTopic" placeholder="e.g. Photosynthesis, GCSE level"></label>
-        <label>How many<input type="number" id="pCount" value="15" min="1" max="200"></label>
-        <label>Mix<input type="range" id="pSplit" min="0" max="100" step="10" value="70" aria-describedby="splitOut"><output id="splitOut" class="split-out"></output></label>
+        <label>Multiple choice<input type="number" id="pMcq" value="11" min="0" max="200"></label>
+        <label>Flashcards<input type="number" id="pCards" value="4" min="0" max="200"></label>
       </div>
       <div class="send">
         <label class="llm">Chatbot<select id="llmPick"></select></label>
@@ -1163,9 +1161,8 @@ $('themeBtn').onclick = () => {
 /* ---------- AI prompt ---------- */
 function buildPrompt() {
   const topic = $('pTopic').value.trim() || '[YOUR TOPIC HERE]';
-  const count = Math.max(1, +$('pCount').value || 15);
-  const { mcq, cards } = split(count);
-  const mixLine = [mcq && `${mcq} "mcq"`, cards && `${cards} "flashcard"`].filter(Boolean).join(' and ') + ' items';
+  const { mcq, cards } = counts();
+  const mixLine = [mcq && `${mcq} "mcq"`, cards && `${cards} "flashcard"`].filter(Boolean).join(' and ') + (mcq + cards === 1 ? ' item' : ' items');
   return `Create a quiz about: ${topic}
 Make ${mixLine}.
 
@@ -1180,19 +1177,16 @@ Reply with only JSON in this format:
 "answer" must exactly match one of the options (use a list if several are correct).`;
 }
 const updatePrompt = () => { $('promptText').textContent = buildPrompt(); $('copied').hidden = true; };
-// slider value = % of items that are multiple choice; the rest are flashcards
-function split(count) {
-  const mcq = Math.round(count * $('pSplit').value / 100);
-  return { mcq, cards: count - mcq };
+// how many of each to ask for; if both are 0, ask for one MCQ so the prompt still makes sense
+function counts() {
+  const n = id => Math.min(200, Math.max(0, Math.round(+$(id).value) || 0));
+  const mcq = n('pMcq'), cards = n('pCards');
+  return mcq + cards ? { mcq, cards } : { mcq: 1, cards: 0 };
 }
-function updateSplit() {
-  const { mcq, cards } = split(Math.max(1, +$('pCount').value || 15));
-  $('splitOut').textContent = `${mcq} MCQ · ${cards} flashcard${cards === 1 ? '' : 's'}`;
-}
-['pTopic', 'pCount', 'pSplit'].forEach(id => $(id).addEventListener('input', () => { updateSplit(); updatePrompt(); }));
-$('pSplit').value = store.get('jsonquiz.split', 70);
-$('pSplit').addEventListener('change', () => store.set('jsonquiz.split', +$('pSplit').value));
-updateSplit();
+const savedCounts = store.get('jsonquiz.counts', null);
+if (savedCounts) { $('pMcq').value = savedCounts.mcq; $('pCards').value = savedCounts.cards; }
+['pTopic', 'pMcq', 'pCards'].forEach(id => $(id).addEventListener('input', updatePrompt));
+['pMcq', 'pCards'].forEach(id => $(id).addEventListener('change', () => store.set('jsonquiz.counts', counts())));
 $('previewPrompt').onclick = () => { updatePrompt(); $('dlgCopied').hidden = true; $('promptDialog').showModal(); };
 $('dlgCopy').onclick = async () => { await copyText(buildPrompt()); $('dlgCopied').hidden = false; };
 $('closeDlg').onclick = () => $('promptDialog').close();
