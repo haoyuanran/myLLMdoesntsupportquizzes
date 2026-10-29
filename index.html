@@ -182,6 +182,13 @@ textarea:focus,input[type=text]:focus,input[type=number]:focus{outline:2px solid
 .spell-in.bad{animation:shake .35s;border-color:var(--bad)}
 .spell-in.ok{border-color:var(--good);background:var(--good-bg)}
 .spell-acts{justify-content:center}
+.blanks.gaps{font-size:1.35rem;margin-bottom:20px}
+.blanks.gaps .ch{width:auto;min-width:.8em;border-color:transparent}
+.gap{width:1.3em;padding:0;border:0;border-bottom:2px solid var(--accent);border-radius:4px 4px 0 0;background:var(--accent-soft);color:var(--text);font:inherit;text-align:center;caret-color:var(--accent)}
+.gap:focus{outline:2px solid var(--accent);outline-offset:1px}
+.gap.bad{border-color:var(--bad);background:var(--bad-bg);animation:shake .35s}
+.gap.ok{border-color:var(--good);background:var(--good-bg)}
+.gap.hint{color:var(--accent);font-weight:700}
 .good-t{color:var(--good)}
 .bad-t{color:var(--bad)}
 .btn kbd{font-family:inherit;font-size:.72rem;border:1px solid currentColor;border-radius:4px;padding:0 4px;margin-left:8px;opacity:.6}
@@ -306,6 +313,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
           <button class="game" id="matchBtn"><b>🧩 Match</b><span>Pair each term with its definition as fast as you can.</span><small id="matchBest"></small></button>
           <button class="game" id="tfBtn"><b>⚡ True or false</b><span>60 seconds: does this definition go with this term?</span><small id="tfBest"></small></button>
           <button class="game" id="spellBtn"><b>✏️ Spell it</b><span>Read the definition and type the word, letter by letter.</span><small id="spellBest"></small></button>
+          <button class="game" id="gapsBtn"><b>🔤 Missing letters</b><span>Some letters are gone. Fill in the gaps, accents included.</span><small id="gapsBest"></small></button>
         </div>
       </div>
     </div>
@@ -347,6 +355,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
         <button class="btn" id="resMatch">🧩 Match</button>
         <button class="btn" id="resTf">⚡ True or false</button>
         <button class="btn" id="resSpell">✏️ Spell it</button>
+        <button class="btn" id="resGaps">🔤 Missing letters</button>
       </div>
     </div>
     <div id="missedWrap">
@@ -784,21 +793,22 @@ function renderGameButtons() {
   const bm = store.get(bestKey('match'), null), bt = store.get(bestKey('tf'), null);
   $('matchBest').textContent = bm != null ? `Best: ${bm.toFixed(1)}s` : '';
   $('tfBest').textContent = bt != null ? `Best: ${bt} points` : '';
-  const nS = spellPairs().length, bs = store.get(bestKey('spell'), null);
+  const nS = spellPairs().length, bs = store.get(bestKey('spell'), null), bg = store.get(bestKey('gaps'), null);
   $('resMatch').hidden = $('resTf').hidden = !ok;
-  $('spellBtn').disabled = $('resSpell').hidden = !nS;
+  $('spellBtn').disabled = $('resSpell').hidden = $('gapsBtn').disabled = $('resGaps').hidden = !nS;
   $('spellBest').textContent = !nS ? 'No short answers to spell in this quiz.' : bs != null ? `Best: ${bs}%` : '';
+  $('gapsBest').textContent = !nS ? 'No short answers to spell in this quiz.' : bg != null ? `Best: ${bg}%` : '';
   $('resGames').hidden = !ok && !nS;
 }
 
-// Spell it: prompt with the longer side, type the shorter one (long answers can't be spelled)
+// Spell it / Missing letters: only short answers can be spelled
 const plain = s => s.replace(/\*\*|`/g, '').replace(/(^|\s)\*(\S)|(\S)\*(?=\s|$)/g, '$1$2$3').trim();
 function spellPairs() {
   // "Astronomical Unit (AU)": type the part outside the brackets
   const spellable = list => list.map(([ask, w]) => ({ ask, full: plain(w), word: plain(w).replace(/\s*\([^)]*\)/g, '').trim() || plain(w) }))
     .filter(p => p.word.length && p.word.length <= 30 && p.word.split(/\s+/).length <= 4 && !p.word.endsWith('?'));
-  const cards = spellable(quiz.items.filter(i => i.kind === 'card')
-    .map(i => plain(i.front).length <= plain(i.back).length ? [i.back, i.front] : [i.front, i.back]));
+  // type the front (the term) when it's short enough, otherwise the back
+  const cards = quiz.items.filter(i => i.kind === 'card').map(i => spellable([[i.back, i.front]])[0] || spellable([[i.front, i.back]])[0]).filter(Boolean);
   if (cards.length >= 2) return cards;
   return cards.concat(spellable(quiz.items.filter(i => i.kind === 'mcq' && i.correct.length === 1)
     .map(i => [i.question, i.options[i.correct[0]]])));
@@ -926,16 +936,19 @@ function endTF() {
   ${missed.length ? `<h2 class="section-title">To review</h2><ul class="missed">${missed.map(p => `<li><div>${fmt(p.a)}</div><div class="ans">${fmt(p.b)}</div></li>`).join('')}</ul>` : ''}`);
 }
 
-// Spell it: one pass through the words; hints reveal letters, a near miss gets a second look
-function startSpell() {
+// Spell it / Missing letters: one pass through the words; hints reveal letters, a near miss gets a second look.
+// "spell" types the whole word, "gaps" fills in hidden letters. Accents count in both.
+function startSpell(variant = 'spell') {
   stopGame();
-  Object.assign(G, { kind: 'spell', queue: shuffle(spellPairs()), i: -1, perfect: 0, helped: 0, missed: [] });
-  $('gameTitle').textContent = '✏️ Spell it';
+  Object.assign(G, { kind: 'spell', variant, queue: shuffle(spellPairs()), i: -1, perfect: 0, helped: 0, missed: [] });
+  $('gameTitle').textContent = variant === 'gaps' ? '🔤 Missing letters' : '✏️ Spell it';
   show('game');
   nextSpell();
 }
 
-const norm = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+const isLetter = c => /[\p{L}\p{N}]/u.test(c);
+const norm = s => s.normalize('NFC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+const noAccents = s => s.normalize('NFD').replace(/\p{M}/gu, '');
 function editDist(a, b) {
   let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
   for (let i = 1; i <= a.length; i++) {
@@ -946,34 +959,51 @@ function editDist(a, b) {
   return prev[b.length];
 }
 
+// pick the letters to hide: every accented letter first (that's what language learners trip on), then random ones
+function pickGaps(word) {
+  const chars = [...word.normalize('NFC')], idx = chars.map((c, k) => k).filter(k => isLetter(chars[k]));
+  const want = idx.length < 3 ? idx.length : Math.min(idx.length - 1, Math.max(1, Math.round(idx.length * 0.45)));
+  const accented = idx.filter(k => noAccents(chars[k]) !== chars[k]);
+  const rest = shuffle(idx.filter(k => !accented.includes(k)));
+  return new Set(shuffle(accented).concat(rest).slice(0, Math.max(want, Math.min(accented.length, idx.length))));
+}
+
 function nextSpell() {
   if (++G.i >= G.queue.length) return endSpell();
-  G.cur = { ...G.queue[G.i], shown: 0, tries: 0, solved: false };
+  const gaps = G.variant === 'gaps', q = G.queue[G.i];
+  G.cur = { ...q, chars: [...q.word.normalize('NFC')], hide: gaps ? pickGaps(q.word) : null, shown: 0, tries: 0, solved: false };
   $('gameStat').textContent = `${G.i + 1} / ${G.queue.length} · ${G.perfect} ✓`;
   $('gameStage').innerHTML = `
     <div class="tf-card" id="spCard"><div class="tf-back">${fmt(G.cur.ask)}</div></div>
-    <div class="blanks" id="spBlanks"></div>
-    <input class="spell-in" id="spIn" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Type the answer">
+    <div class="blanks${gaps ? ' gaps' : ''}" id="spBlanks"></div>
+    ${gaps ? '' : '<input class="spell-in" id="spIn" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Type the answer">'}
     <div class="tf-fb" id="spFb"></div>
     <div class="row spell-acts" id="spActs"></div>
-    <p class="kbd"><kbd>Enter</kbd> check · capitals, accents and punctuation don't matter</p>`;
+    <p class="kbd">${gaps ? 'One letter per gap · ' : ''}<kbd>Enter</kbd> check · capitals and punctuation don't matter, accents do</p>`;
   renderBlanks();
   spellButtons();
-  $('spIn').focus();
+  (gaps ? document.querySelector('.gap') : $('spIn')).focus();
 }
 
-// letters and digits become blanks; spaces and punctuation stay visible as hints to the shape
+// letters and digits become blanks (or gap inputs); spaces and punctuation stay visible as hints to the shape
 function renderBlanks() {
+  const c = G.cur;
   let n = 0;
-  $('spBlanks').innerHTML = G.cur.word.split(/\s+/).map(w => `<span class="w">${[...w].map(c => {
-    if (!/[\p{L}\p{N}]/u.test(c)) return `<span class="p">${esc(c)}</span>`;
-    const on = G.cur.solved || n++ < G.cur.shown;
-    return `<span class="ch${on ? ' on' : ''}">${on ? esc(c) : ''}</span>`;
+  const words = [[]];
+  c.chars.forEach((ch, at) => /\s/.test(ch) ? words.push([]) : words[words.length - 1].push([ch, at]));
+  $('spBlanks').innerHTML = words.filter(w => w.length).map(w => `<span class="w">${w.map(([ch, at]) => {
+    if (!isLetter(ch)) return `<span class="p">${esc(ch)}</span>`;
+    if (c.hide) return c.hide.has(at) ? `<input class="gap" data-k="${at}" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="missing letter">`
+      : `<span class="ch">${esc(ch)}</span>`;
+    const on = c.solved || n++ < c.shown;
+    return `<span class="ch${on ? ' on' : ''}">${on ? esc(ch) : ''}</span>`;
   }).join('')}</span>`).join('');
 }
 
+const gapInputs = () => [...document.querySelectorAll('#spBlanks .gap')];
+
 function spellButtons() {
-  const c = G.cur, letters = [...c.word].filter(ch => /[\p{L}\p{N}]/u.test(ch)).length;
+  const c = G.cur, letters = c.hide ? c.hide.size : c.chars.filter(isLetter).length;
   $('spActs').innerHTML = c.solved ? '<button class="btn primary" data-sp="next">Next →</button>'
     : `<button class="btn primary" data-sp="check">Check</button>
        <button class="btn" data-sp="hint"${c.shown >= letters - 1 ? ' disabled' : ''}>Hint: show a letter</button>
@@ -981,52 +1011,101 @@ function spellButtons() {
 }
 
 function spellAction(a) {
-  const c = G.cur, inp = $('spIn');
+  const c = G.cur;
   if (G.kind !== 'spell' || !c) return;
   if (a === 'next') return nextSpell();
   if (c.solved) return;
-  if (a === 'hint') { c.shown++; renderBlanks(); spellButtons(); inp.focus(); return; }
   if (a === 'reveal') return finishSpell(false);
+  if (c.hide) return gapsAction(a);
+  const inp = $('spIn');
+  if (a === 'hint') { c.shown++; renderBlanks(); spellButtons(); inp.focus(); return; }
   const got = norm(inp.value), want = norm(c.word);
   if (!got) return inp.focus();
   if (got === want || got === norm(c.full)) return finishSpell(true);
   c.tries++;
+  const accent = noAccents(got) === noAccents(want) || noAccents(got) === noAccents(norm(c.full));
   const close = editDist(got, want) <= Math.max(1, Math.floor(want.length / 6));
   inp.classList.remove('bad'); void inp.offsetWidth; inp.classList.add('bad');
-  $('spFb').innerHTML = close ? '<strong class="bad-t">So close!</strong> Check your spelling.' : '<strong class="bad-t">Not quite.</strong> Try again, or take a hint.';
+  $('spFb').innerHTML = accent ? '<strong class="bad-t">Almost!</strong> Check the accents.'
+    : close ? '<strong class="bad-t">So close!</strong> Check your spelling.' : '<strong class="bad-t">Not quite.</strong> Try again, or take a hint.';
   inp.select();
+}
+
+function gapsAction(a) {
+  const c = G.cur, inputs = gapInputs(), right = el => norm(el.value) === norm(c.chars[el.dataset.k]);
+  if (a === 'hint') {
+    const el = inputs.find(x => !x.readOnly && !right(x)) || inputs.find(x => !x.readOnly);
+    if (!el) return;
+    c.shown++;
+    el.value = c.chars[el.dataset.k]; el.readOnly = true; el.classList.remove('bad'); el.classList.add('hint');
+    spellButtons();
+    (inputs.find(x => !x.readOnly && !x.value) || el).focus();
+    return;
+  }
+  const empty = inputs.find(x => !x.value);
+  if (empty) { $('spFb').innerHTML = 'Fill in every gap first.'; return empty.focus(); }
+  const wrong = inputs.filter(x => !right(x));
+  if (!wrong.length) return finishSpell(true);
+  c.tries++;
+  const accent = wrong.every(x => noAccents(norm(x.value)) === noAccents(norm(c.chars[x.dataset.k])));
+  for (const x of wrong) { x.classList.remove('bad'); void x.offsetWidth; x.classList.add('bad'); }
+  $('spFb').innerHTML = accent ? '<strong class="bad-t">Almost!</strong> Check the accents on the red letters.'
+    : `<strong class="bad-t">Not quite.</strong> ${wrong.length === 1 ? 'The red letter is' : `${wrong.length} red letters are`} wrong.`;
+  wrong[0].select();
 }
 
 function finishSpell(ok) {
   const c = G.cur, clean = ok && !c.tries && !c.shown;
   c.solved = true;
   if (clean) G.perfect++; else if (ok) G.helped++; else G.missed.push(c);
-  $('spIn').value = c.full; $('spIn').readOnly = true;
-  $('spIn').classList.remove('bad'); $('spIn').classList.add(ok ? 'ok' : 'bad');
+  if (c.hide) {
+    for (const x of gapInputs()) { x.value = c.chars[x.dataset.k]; x.readOnly = true; x.classList.remove('bad', 'hint'); x.classList.add(ok ? 'ok' : 'bad'); }
+  } else {
+    $('spIn').value = c.full; $('spIn').readOnly = true;
+    $('spIn').classList.remove('bad'); $('spIn').classList.add(ok ? 'ok' : 'bad');
+    renderBlanks();
+  }
   $('spCard').classList.add(ok ? 'ok' : 'no');
   $('spFb').innerHTML = clean ? '<strong class="good-t">Perfect!</strong>' : ok ? `<strong class="good-t">Got it</strong> ${c.shown ? 'with a hint' : 'on another try'}.` : `The answer is <strong>${esc(c.full)}</strong>.`;
   $('gameStat').textContent = `${G.i + 1} / ${G.queue.length} · ${G.perfect} ✓`;
-  renderBlanks(); spellButtons();
+  spellButtons();
   $('spActs').querySelector('button').focus();
 }
 
 function endSpell() {
-  const n = G.queue.length, pct = Math.round(G.perfect / n * 100), key = bestKey('spell'), best = store.get(key, null);
+  const n = G.queue.length, pct = Math.round(G.perfect / n * 100), key = bestKey(G.variant), best = store.get(key, null);
   const isBest = G.perfect > 0 && (best == null || pct > best);
   if (isBest) store.set(key, pct);
   gameEnd(`<div class="card game-end">
     <h2>All done!</h2>
     <div class="big">${G.perfect} / ${n}</div>
-    <p class="sub">spelled perfectly · ${G.helped} with help · ${G.missed.length} shown · ${isBest ? 'New best 🎉' : best != null ? `Best: ${best}%` : ''}</p>
-    <div class="row"><button class="btn primary" data-again="spell">Play again</button><button class="btn" data-back>Back</button></div>
+    <p class="sub">${G.variant === 'gaps' ? 'filled in' : 'spelled'} perfectly · ${G.helped} with help · ${G.missed.length} shown · ${isBest ? 'New best 🎉' : best != null ? `Best: ${best}%` : ''}</p>
+    <div class="row"><button class="btn primary" data-again="${G.variant}">Play again</button><button class="btn" data-back>Back</button></div>
   </div>
   ${G.missed.length ? `<h2 class="section-title">To review</h2><ul class="missed">${G.missed.map(p => `<li><div>${fmt(p.ask)}</div><div class="ans">${esc(p.full)}</div></li>`).join('')}</ul>` : ''}`);
 }
 
 $('gameStage').addEventListener('keydown', e => {
-  if (e.key !== 'Enter' || G.kind !== 'spell' || e.target.id !== 'spIn') return;
-  e.preventDefault();
-  spellAction(G.cur.solved ? 'next' : 'check');
+  if (G.kind !== 'spell' || !G.cur) return;
+  const t = e.target, isGap = t.classList.contains('gap');
+  if (e.key === 'Enter' && (isGap || t.id === 'spIn')) { e.preventDefault(); return spellAction(G.cur.solved ? 'next' : 'check'); }
+  if (!isGap) return;
+  const inputs = gapInputs().filter(x => !x.readOnly), i = inputs.indexOf(t);
+  if (e.key === 'Backspace' && !t.value && i > 0) { e.preventDefault(); inputs[i - 1].value = ''; inputs[i - 1].focus(); }
+  else if (e.key === 'ArrowLeft' && i > 0) { e.preventDefault(); inputs[i - 1].focus(); }
+  else if (e.key === 'ArrowRight' && i < inputs.length - 1) { e.preventDefault(); inputs[i + 1].focus(); }
+});
+// one character per gap; typing moves on to the next empty gap
+$('gameStage').addEventListener('input', e => {
+  const t = e.target;
+  if (!t.classList.contains('gap')) return;
+  t.classList.remove('bad');
+  const chars = [...t.value.normalize('NFC')];
+  t.value = chars[chars.length - 1] || '';
+  if (!t.value || e.isComposing) return;
+  const inputs = gapInputs().filter(x => !x.readOnly), i = inputs.indexOf(t);
+  const next = inputs.slice(i + 1).find(x => !x.value) || inputs.find(x => !x.value);
+  if (next) next.focus();
 });
 
 $('gameStage').addEventListener('click', e => {
@@ -1038,13 +1117,14 @@ $('gameStage').addEventListener('click', e => {
   const sp = t.closest('[data-sp]');
   if (sp) return spellAction(sp.dataset.sp);
   const again = t.closest('[data-again]');
-  if (again) return ({ match: startMatch, tf: startTF, spell: startSpell })[again.dataset.again]();
+  if (again) return ({ match: startMatch, tf: startTF, spell: () => startSpell('spell'), gaps: () => startSpell('gaps') })[again.dataset.again]();
   if (t.closest('[data-back]')) openSetup();
 });
 $('gameBack').onclick = () => openSetup();
 $('matchBtn').onclick = $('resMatch').onclick = startMatch;
 $('tfBtn').onclick = $('resTf').onclick = startTF;
-$('spellBtn').onclick = $('resSpell').onclick = startSpell;
+$('spellBtn').onclick = $('resSpell').onclick = () => startSpell('spell');
+$('gapsBtn').onclick = $('resGaps').onclick = () => startSpell('gaps');
 document.addEventListener('keydown', e => {
   if (G.kind !== 'tf' || e.ctrlKey || e.metaKey || e.altKey) return;
   const k = e.key.toLowerCase();
