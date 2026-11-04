@@ -221,6 +221,15 @@ textarea:focus,input[type=text]:focus,input[type=number]:focus{outline:2px solid
 .fs-val input{width:4.8em;border:1px solid var(--border);border-radius:8px;padding:4px 6px;background:var(--surface);color:var(--text);text-align:right}
 @media (max-width:520px){.fs-row{grid-template-columns:1fr auto;row-gap:4px}.fs-row input[type=range]{grid-column:1/-1;grid-row:2}}
 @keyframes delta{0%{opacity:1;transform:translateY(6px)}100%{opacity:0;transform:translateY(-10px)}}
+.bins{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:4px 0 14px}
+.bin{position:relative;display:grid;gap:2px;place-items:center;align-content:center;min-height:76px;padding:12px;border:1.5px dashed var(--border);border-radius:12px;background:var(--surface-2);cursor:pointer;text-align:center;transition:border-color .12s,background .12s}
+.bin:hover:not(:disabled){border-color:var(--accent)}
+.bin small{color:var(--muted);font-size:.8rem;min-height:1.2em}
+.bin kbd{position:absolute;top:6px;left:8px;font-family:inherit;font-size:.7rem;opacity:.5}
+.bin.sel{border-style:solid;border-color:var(--accent);background:var(--accent-soft)}
+.bin.ok{border-style:solid;border-color:var(--good);background:var(--good-bg)}
+.bin.no{border-style:solid;border-color:var(--bad);background:var(--bad-bg);animation:shake .35s}
+.bin.miss{border-style:solid;border-color:var(--good)}
 .blanks.gaps{font-size:1.35rem;margin-bottom:20px}
 .blanks.gaps .ch{width:auto;min-width:.8em;border-color:transparent}
 .gap{width:1.3em;padding:0;border:0;border-bottom:2px solid var(--accent);border-radius:4px 4px 0 0;background:var(--accent-soft);color:var(--text);font:inherit;text-align:center;caret-color:var(--accent)}
@@ -364,6 +373,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
           <button class="game" id="spellBtn"><b>✏️ Spell it</b><span>Read the definition and type the word, letter by letter.</span><small id="spellBest"></small></button>
           <button class="game" id="gapsBtn"><b>🔤 Missing letters</b><span>Some letters are gone. Fill in the gaps, accents included.</span><small id="gapsBest"></small></button>
           <button class="game" id="fuseBtn"><b>🧨 Fuse</b><span>Spell before the fuse burns out. Right answers add time, mistakes cost it.</span><small id="fuseBest"></small></button>
+          <button class="game" id="sortBtn"><b>🗂️ Sort</b><span>Drop each card into the right group, using the cards' "sort" tags.</span><small id="sortBest"></small></button>
         </div>
       </div>
     </div>
@@ -407,6 +417,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
         <button class="btn" id="resSpell">✏️ Spell it</button>
         <button class="btn" id="resGaps">🔤 Missing letters</button>
         <button class="btn" id="resFuse">🧨 Fuse</button>
+        <button class="btn" id="resSort">🗂️ Sort</button>
       </div>
     </div>
     <div id="missedWrap">
@@ -524,9 +535,16 @@ function normItem(q, inCardList) {
     if (Array.isArray(back)) back = back.join(', ');
     if (front == null) throw new Error('flashcard is missing "front"');
     if (back == null) throw new Error('flashcard is missing "back"');
-    return { kind: 'card', front: str(front), back: str(back), hint };
+    return { kind: 'card', front: str(front), back: str(back), hint, sort: sortTags(pick(q, 'sort', 'sorts', 'category', 'categories', 'group', 'groups', 'tag', 'tags')) };
   }
   return normMcq(q, options, type, hint);
+}
+
+// optional "sort" tag(s) on a flashcard: a string or a list; empty and repeated tags are dropped
+function sortTags(v) {
+  const seen = new Set();
+  return (Array.isArray(v) ? v : v == null ? [] : [v]).map(t => str(t).trim())
+    .filter(t => t && !seen.has(t.toLowerCase()) && seen.add(t.toLowerCase()));
 }
 
 function normMcq(q, raw, type, hint) {
@@ -900,7 +918,23 @@ function renderGameButtons() {
   $('gapsBest').textContent = !nS ? noSpell : bg != null ? `Best: ${bg}%` : '';
   $('fuseBtn').disabled = $('resFuse').hidden = !nS;
   $('fuseBest').textContent = !nS ? noSpell : '';
-  $('resGames').hidden = !ok && !nS;
+  // Sort only uses flashcards with a "sort" tag, so quizzes without tags just get a greyed-out button
+  const sd = sortData(), okSort = sd.cards.length >= 2 && sd.cats.length >= 2, bso = store.get(bestKey('sort'), null);
+  $('sortBtn').disabled = $('resSort').hidden = !okSort;
+  $('sortBest').textContent = !sd.cards.length ? 'Add "sort" tags to your flashcards to play.'
+    : !okSort ? 'Sort needs at least 2 tagged cards in 2 different groups.' : bso != null ? `Best: ${bso}%` : '';
+  $('resGames').hidden = !ok && !nS && !okSort;
+}
+
+// flashcards that have sort tags, plus the groups they use (matched ignoring case, named by first spelling)
+function sortData() {
+  const names = new Map();
+  const cards = quiz.items.filter(i => i.kind === 'card' && i.sort && i.sort.length).map(i => ({ ...i, tags: i.sort.map(t => {
+    const k = t.toLowerCase();
+    if (!names.has(k)) names.set(k, t);
+    return k;
+  }) }));
+  return { cards, cats: [...names].map(([k, name]) => ({ k, name })) };
 }
 
 // Spell it / Missing letters: only short answers can be spelled
@@ -1335,6 +1369,85 @@ function endFuse() {
   ${missed.length ? `<h2 class="section-title">To review</h2><ul class="missed">${missed.map(p => `<li><div>${fmt(p.ask)}</div><div class="ans">${esc(p.full)}</div></li>`).join('')}</ul>` : ''}`);
 }
 
+// Sort: one card at a time; click its group (or all its groups, for cards with several tags)
+function startSort() {
+  stopGame();
+  const { cards, cats } = sortData();
+  Object.assign(G, { kind: 'sort', queue: shuffle(cards), cats, i: -1, right: 0, missed: [], counts: {} });
+  $('gameTitle').textContent = '🗂️ Sort';
+  show('game');
+  nextSort();
+}
+
+function nextSort() {
+  if (++G.i >= G.queue.length) return endSort();
+  const card = G.queue[G.i], many = card.tags.length > 1;
+  G.cur = { card, sel: new Set(), done: false };
+  $('gameStat').textContent = `${G.i + 1} / ${G.queue.length} · ${G.right} ✓`;
+  $('gameStage').innerHTML = `
+    <p class="sub">${many ? `This one goes in <strong>${card.tags.length} groups</strong>. Pick them all.` : 'Which group does this go in?'}</p>
+    <div class="tf-card" id="soCard"><div class="tf-front">${fmt(side() === 'back' ? card.back : card.front)}</div></div>
+    <div class="bins">${G.cats.map((c, n) => `<button class="bin" data-bin="${esc(c.k)}">${n < 9 ? `<kbd>${n + 1}</kbd>` : ''}<b>${esc(c.name)}</b><small>${G.counts[c.k] ? `${G.counts[c.k]} sorted` : ''}</small></button>`).join('')}</div>
+    <div class="tf-fb" id="soFb"></div>
+    <div class="row spell-acts" id="soActs"></div>
+    <p class="kbd">${G.cats.length > 1 ? `<kbd>1</kbd>–<kbd>${Math.min(9, G.cats.length)}</kbd> pick a group · ` : ''}<kbd>Enter</kbd> next</p>`;
+}
+
+function sortPick(k) {
+  const c = G.cur;
+  if (G.kind !== 'sort' || !c || c.done) return;
+  const bin = [...document.querySelectorAll('.bin')].find(b => b.dataset.bin === k);
+  if (!bin) return;
+  c.sel.has(k) ? c.sel.delete(k) : c.sel.add(k);
+  bin.classList.toggle('sel', c.sel.has(k));
+  if (c.sel.size === c.card.tags.length) checkSort();
+}
+
+function checkSort() {
+  const c = G.cur, tags = c.card.tags, ok = tags.every(t => c.sel.has(t));
+  c.done = true;
+  for (const b of document.querySelectorAll('.bin')) {
+    const k = b.dataset.bin, want = tags.includes(k), got = c.sel.has(k);
+    b.classList.remove('sel');
+    if (want) b.classList.add(got ? 'ok' : 'miss');
+    else if (got) b.classList.add('no');
+    b.disabled = true;
+  }
+  for (const t of tags) G.counts[t] = (G.counts[t] || 0) + 1;
+  $('soCard').classList.add(ok ? 'ok' : 'no');
+  const names = tags.map(t => G.cats.find(x => x.k === t).name);
+  if (ok) {
+    G.right++;
+    $('soFb').innerHTML = '<strong class="good-t">Correct!</strong>';
+    setTimeout(() => { if (G.kind === 'sort' && G.cur === c) nextSort(); }, 650);
+  } else {
+    G.missed.push({ card: c.card, names });
+    $('soFb').innerHTML = `<strong class="bad-t">Not quite.</strong> It goes in ${names.map(n => `<strong>${esc(n)}</strong>`).join(' and ')}.`;
+    $('soActs').innerHTML = '<button class="btn primary" data-so="next">Next →</button>';
+    $('soActs').querySelector('button').focus();
+  }
+  $('gameStat').textContent = `${G.i + 1} / ${G.queue.length} · ${G.right} ✓`;
+}
+
+function endSort() {
+  const n = G.queue.length, pct = Math.round(G.right / n * 100), key = bestKey('sort'), best = store.get(key, null);
+  const isBest = G.right > 0 && (best == null || pct > best);
+  if (isBest) store.set(key, pct);
+  gameEnd(`<div class="card game-end">
+    <h2>All sorted!</h2>
+    <div class="big">${G.right} / ${n}</div>
+    <p class="sub">in the right group · ${isBest ? 'New best 🎉' : best != null ? `Best: ${best}%` : ''}</p>
+    <div class="row"><button class="btn primary" data-again="sort">Play again</button><button class="btn" data-back>Back</button></div>
+  </div>
+  ${G.missed.length ? `<h2 class="section-title">To review</h2><ul class="missed">${G.missed.map(m => `<li><div>${fmt(m.card.front)}</div><div class="ans">${m.names.map(esc).join(', ')}</div></li>`).join('')}</ul>` : ''}`);
+}
+
+document.addEventListener('keydown', e => {
+  if (G.kind !== 'sort' || !G.cur || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (/^[1-9]$/.test(e.key) && G.cats[e.key - 1]) { e.preventDefault(); sortPick(G.cats[e.key - 1].k); }
+  else if (e.key === 'Enter' && G.cur.done) { e.preventDefault(); nextSort(); }
+});
+
 $('gameStage').addEventListener('keydown', e => {
   if (G.kind === 'fuse') {
     if (e.key === 'Enter' && e.target.id === 'spIn') { e.preventDefault(); fuseCheck(); }
@@ -1371,6 +1484,9 @@ $('gameStage').addEventListener('click', e => {
   if (tf) return tfAnswer(tf.dataset.tf === '1');
   const sp = t.closest('[data-sp]');
   if (sp) return spellAction(sp.dataset.sp);
+  const bin = t.closest('[data-bin]');
+  if (bin) return sortPick(bin.dataset.bin);
+  if (t.closest('[data-so]')) return G.kind === 'sort' && G.cur && G.cur.done && nextSort();
   const fu = t.closest('[data-fu]');
   if (fu) {
     const a = fu.dataset.fu;
@@ -1381,7 +1497,7 @@ $('gameStage').addEventListener('click', e => {
     return;
   }
   const again = t.closest('[data-again]');
-  if (again) return ({ match: startMatch, tf: startTF, spell: () => startSpell('spell'), gaps: () => startSpell('gaps'), fuse: () => startFuse(G.cfg) })[again.dataset.again]();
+  if (again) return ({ match: startMatch, tf: startTF, spell: () => startSpell('spell'), gaps: () => startSpell('gaps'), fuse: () => startFuse(G.cfg), sort: startSort })[again.dataset.again]();
   if (t.closest('[data-back]')) openSetup();
 });
 $('gameBack').onclick = () => openSetup();
@@ -1390,6 +1506,7 @@ $('tfBtn').onclick = $('resTf').onclick = startTF;
 $('spellBtn').onclick = $('resSpell').onclick = () => startSpell('spell');
 $('gapsBtn').onclick = $('resGaps').onclick = () => startSpell('gaps');
 $('fuseBtn').onclick = $('resFuse').onclick = fuseSettings;
+$('sortBtn').onclick = $('resSort').onclick = startSort;
 // keep each Fuse setting's slider and number box in step
 $('gameStage').addEventListener('input', e => {
   const k = e.target.dataset.fs;
@@ -1444,7 +1561,7 @@ Reply with only JSON in this format:
   "title": "Quiz title",
   "questions": [
     {"type": "mcq", "question": "...", "options": ["...", "...", "...", "..."], "answer": "...", "explanation": "optional"},
-    {"type": "flashcard", "front": "...", "back": "..."}
+    {"type": "flashcard", "front": "...", "back": "...", "sort": "optional group name"}
   ]
 }
 "answer" must exactly match one of the options (use a list if several are correct).`;

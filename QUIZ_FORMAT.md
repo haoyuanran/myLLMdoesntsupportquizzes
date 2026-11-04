@@ -26,7 +26,8 @@ multiple-choice question (`"type": "mcq"`) or a flashcard (`"type": "flashcard"`
       "type": "flashcard",
       "front": "Astronomical Unit",
       "back": "Average Earth–Sun distance, about 150 million km.",
-      "hint": "Optional"
+      "hint": "Optional",
+      "sort": "Units"
     }
   ]
 }
@@ -45,6 +46,7 @@ multiple-choice question (`"type": "mcq"`) or a flashcard (`"type": "flashcard"`
 | `explanation` | mcq | no | Shown after answering |
 | `front` / `back` | flashcard | yes | |
 | `hint` | both | no | Hidden until the player clicks "Show hint" |
+| `sort` | flashcard | no | The group the card belongs in, for the Sort game. A list (`["Rocky", "Has moons"]`) puts it in several groups. Sort needs at least 2 tagged cards in 2 different groups; cards without `sort` are left out of it. |
 
 Text can use `**bold**`, `*italic*`, `` `code` `` and line breaks (`\n`).
 
@@ -59,7 +61,7 @@ LLM output varies, so the app also accepts:
 - a bare list of questions instead of an object
 - separate `"mcq": [...]` and `"flashcards": [...]` lists
 - `answer` as a letter (`"B"`), a 0-based index (`1`), or `"B) Mercury"`
-- `choices` instead of `options`, `correct_answer` instead of `answer`, `term`/`definition` instead of `front`/`back`
+- `choices` instead of `options`, `correct_answer` instead of `answer`, `term`/`definition` instead of `front`/`back`, `category`/`group`/`tags` instead of `sort` (group names ignore capitals)
 - options written as `"A) Venus"` (the labels are removed) or as `{"text": "...", "correct": true}` objects
 
 Items that still can't be read are skipped and listed on the start screen, so one bad question
@@ -79,7 +81,7 @@ Reply with only JSON in this format:
   "title": "Quiz title",
   "questions": [
     {"type": "mcq", "question": "...", "options": ["...", "...", "...", "..."], "answer": "...", "explanation": "optional"},
-    {"type": "flashcard", "front": "...", "back": "..."}
+    {"type": "flashcard", "front": "...", "back": "...", "sort": "optional group name"}
   ]
 }
 "answer" must exactly match one of the options (use a list if several are correct).
